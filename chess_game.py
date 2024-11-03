@@ -17,6 +17,7 @@ class Pawn(ChessPiece):
         return 'P' if self.color == 'white' else 'p'
 
     def is_valid_move(self, start, end, board, last_move=None):
+        """A pawn can move forward one square, or two squares from its starting position. It captures diagonally."""
         direction = 1 if self.color == 'white' else -1
         start_x, start_y = start
         end_x, end_y = end
@@ -49,6 +50,7 @@ class Rook(ChessPiece):
         return 'R' if self.color == 'white' else 'r'
 
     def is_valid_move(self, start, end, board):
+        """A rook can move horizontally or vertically as long as the path is clear."""
         start_x, start_y = start
         end_x, end_y = end
         if start_x == end_x or start_y == end_y:
@@ -61,15 +63,15 @@ class Rook(ChessPiece):
         """Helper function to check if all squares between start and end are empty."""
         x, y = start
         x2, y2 = end
-        dx = int((x2 - x) / max(1, abs(x2 - x)))
-        dy = int((y2 - y) / max(1, abs(y2 - y)))
-        x, y = x + dx, y + dy
+        dx = int((x2 - x) / max(1, abs(x2 - x)))  # Direction along x-axis (1, 0, or -1)
+        dy = int((y2 - y) / max(1, abs(y2 - y)))  # Direction along y-axis (1, 0, or -1)
+        x, y = x + dx, y + dy  # Initialize the next position
 
         # Move along the path to the end, checking for obstacles
         while (x, y) != (x2, y2):
             if board[x][y] is not None:
                 return False  # Found an obstacle
-            x, y = x + dx, y + dy
+            x, y = x + dx, y + dy  # Move to the next square
         return True
 
 
@@ -81,12 +83,12 @@ class Knight(ChessPiece):
         return 'N' if self.color == 'white' else 'n'
 
     def is_valid_move(self, start, end, board):
+        """A knight can move 2 squares in one direction and 1 square in a perpendicular direction."""
         dx = abs(start[0] - end[0])
         dy = abs(start[1] - end[1])
         return (dx, dy) in [(1, 2), (2, 1)]
 
 
-######################################## Missing implementation for the method is_path_clear ########################################
 class Bishop(ChessPiece):
     def __init__(self, color):
         super().__init__(color)
@@ -95,11 +97,27 @@ class Bishop(ChessPiece):
         return 'B' if self.color == 'white' else 'b'
 
     def is_valid_move(self, start, end, board):
+        """A bishop can move diagonally as long as the path is clear."""
         start_x, start_y = start
         end_x, end_y = end
         if abs(start_x - end_x) == abs(start_y - end_y):
-            return Rook.is_path_clear(self, start, end, board)
+            return self.is_path_clear(start, end, board)
         return False
+
+    def is_path_clear(self, start, end, board):
+        """Helper function to check if all squares between start and end are empty."""
+        x, y = start
+        x2, y2 = end
+        dx = int((x2 - x) / max(1, abs(x2 - x)))  # Direction along x-axis (1, 0, or -1)
+        dy = int((y2 - y) / max(1, abs(y2 - y)))  # Direction along y-axis (1, 0, or -1)
+        x, y = x + dx, y + dy  # Initialize the next position
+
+        # Move along the path to the end, checking for obstacles
+        while (x, y) != (x2, y2):
+            if board[x][y] is not None:
+                return False  # Found an obstacle
+            x, y = x + dx, y + dy  # Move to the next square
+        return True
 
 
 class Queen(ChessPiece):
@@ -110,6 +128,7 @@ class Queen(ChessPiece):
         return 'Q' if self.color == 'white' else 'q'
 
     def is_valid_move(self, start, end, board):
+        """A queen can move horizontally, vertically, or diagonally as long as the path is clear."""
         start_x, start_y = start
         end_x, end_y = end
 
@@ -127,15 +146,15 @@ class Queen(ChessPiece):
         """Helper function to check if all squares between start and end are empty."""
         x, y = start
         x2, y2 = end
-        dx = int((x2 - x) / max(1, abs(x2 - x)))  # Direction along x-axis
-        dy = int((y2 - y) / max(1, abs(y2 - y)))  # Direction along y-axis
-        x, y = x + dx, y + dy
+        dx = int((x2 - x) / max(1, abs(x2 - x)))  # Direction along x-axis (1, 0, or -1)
+        dy = int((y2 - y) / max(1, abs(y2 - y)))  # Direction along y-axis (1, 0, or -1)
+        x, y = x + dx, y + dy  # Initialize the next position
 
         # Move along the path to the end, checking for obstacles
         while (x, y) != (x2, y2):
             if board[x][y] is not None:
                 return False  # Found an obstacle
-            x, y = x + dx, y + dy
+            x, y = x + dx, y + dy  # Move to the next square
         return True
 
 
@@ -148,7 +167,8 @@ class King(ChessPiece):
         return 'K' if self.color == 'white' else 'k'
 
     ######################################## Missing implementation for the case that the squares are under enemy control ########################################
-    def is_valid_move(self, start, end, board, rooks):
+    def is_valid_move(self, start, end, board):
+        """A king can move one square in any direction. It can also castle if certain conditions are met."""
         dx = abs(start[0] - end[0])
         dy = abs(start[1] - end[1])
 
@@ -166,19 +186,6 @@ class King(ChessPiece):
                 return board[1][row] is None and board[2][row] is None and board[3][row] is None
         return False
 
-    # def move(self, start, end, board):
-    #     self.has_moved = True
-    #     if abs(start[0] - end[0]) == 2:  # Castling move
-    #         row = start[1]
-    #         if end[0] == 6:  # Kingside
-    #             board[5][row] = board[7][row]
-    #             board[7][row] = None
-    #         elif end[0] == 2:  # Queenside
-    #             board[3][row] = board[0][row]
-    #             board[0][row] = None
-    #     board[end[0]][end[1]] = self
-    #     board[start[0]][start[1]] = None
-
 
 class ChessBoard:
     def __init__(self):
@@ -186,6 +193,7 @@ class ChessBoard:
         self.setup_board()
 
     def setup_board(self):
+        """Sets up the chess board with pieces in their initial positions."""
         for i in range(8):
             self.board[i][1] = Pawn('white')
             self.board[i][6] = Pawn('black')
@@ -198,6 +206,7 @@ class ChessBoard:
             self.board[i][7] = piece('black')
 
     def display(self):
+        """Prints the chess board after every move."""
         print("  a b c d e f g h")
         for y in range(7, -1, -1):
             print(f"{y+1} ", end="")
@@ -208,6 +217,7 @@ class ChessBoard:
         print("  a b c d e f g h\n")
 
     def move_piece(self, start, end, color):
+        """Moves a piece from the start position to the end position if it is a valid move."""
         if (start == end):
             return False
 
@@ -219,10 +229,27 @@ class ChessBoard:
 
         piece = self.board[start_x][start_y]
 
-        if piece and piece.color == color and piece.is_valid_move(start, end, self.board):
-            self.board[end_x][end_y] = piece
-            self.board[start_x][start_y] = None
-            return True
+        if piece and piece.color == color:
+            if isinstance(piece, King):
+                piece.is_valid_move(start, end, self.board)
+
+                self.has_moved = True
+                # Castling move
+                if abs(start[0] - end[0]) == 2:
+                    row = start[1]
+                    if end[0] == 6:  # Kingside
+                        self.board[5][row] = self.board[7][row]
+                        self.board[7][row] = None
+                    elif end[0] == 2:  # Queenside
+                        self.board[3][row] = self.board[0][row]
+                        self.board[0][row] = None
+                self.board[end_x][end_y] = piece
+                self.board[start_x][start_y] = None
+                return True
+            if piece.is_valid_move(start, end, self.board):
+                self.board[end_x][end_y] = piece
+                self.board[start_x][start_y] = None
+                return True
         return False
 
 
