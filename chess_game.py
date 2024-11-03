@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-######################################## Missing implementation for the case that the piece is pinned to the king ########################################
 class ChessPiece:
     def __init__(self, color):
         self.color = color
@@ -14,7 +13,7 @@ class Pawn(ChessPiece):
         super().__init__(color)
 
     def __str__(self):
-        return 'P' if self.color == 'white' else 'p'
+        return '♙' if self.color == 'white' else '♟'
 
     def is_valid_move(self, start, end, board, last_move=None):
         """A pawn can move forward one square, or two squares from its starting position. It captures diagonally."""
@@ -48,7 +47,7 @@ class Rook(ChessPiece):
         self.has_moved = False
 
     def __str__(self):
-        return 'R' if self.color == 'white' else 'r'
+        return '♖' if self.color == 'white' else '♜'
 
     def is_valid_move(self, start, end, board):
         """A rook can move horizontally or vertically as long as the path is clear."""
@@ -81,7 +80,7 @@ class Knight(ChessPiece):
         super().__init__(color)
 
     def __str__(self):
-        return 'N' if self.color == 'white' else 'n'
+        return '♘' if self.color == 'white' else '♞'
 
     def is_valid_move(self, start, end, board):
         """A knight can move 2 squares in one direction and 1 square in a perpendicular direction."""
@@ -95,7 +94,7 @@ class Bishop(ChessPiece):
         super().__init__(color)
 
     def __str__(self):
-        return 'B' if self.color == 'white' else 'b'
+        return '♗' if self.color == 'white' else '♝'
 
     def is_valid_move(self, start, end, board):
         """A bishop can move diagonally as long as the path is clear."""
@@ -126,7 +125,7 @@ class Queen(ChessPiece):
         super().__init__(color)
 
     def __str__(self):
-        return 'Q' if self.color == 'white' else 'q'
+        return '♕' if self.color == 'white' else '♛'
 
     def is_valid_move(self, start, end, board):
         """A queen can move horizontally, vertically, or diagonally as long as the path is clear."""
@@ -165,7 +164,7 @@ class King(ChessPiece):
         self.has_moved = False
 
     def __str__(self):
-        return 'K' if self.color == 'white' else 'k'
+        return '♔' if self.color == 'white' else '♚'
 
     ######################################## Missing implementation for the case that the squares are under enemy control ########################################
     def is_valid_move(self, start, end, board):
@@ -192,6 +191,8 @@ class ChessBoard:
     def __init__(self):
         self.board = [[None] * 8 for _ in range(8)]
         self.setup_board()
+        self.white_king_position = (4, 0)
+        self.black_king_position = (4, 7)
 
     def setup_board(self):
         """Sets up the chess board with pieces in their initial positions."""
@@ -228,33 +229,90 @@ class ChessBoard:
         if start_x < 0 or start_x > 7 or start_y < 0 or start_y > 7 or end_x < 0 or end_x > 7 or end_y < 0 or end_y > 7:
             return False
 
-        piece = self.board[start_x][start_y]
+        piece = self.board[start_x][start_y]  # Piece at the start square
+        target_piece = self.board[end_x][end_y]  # Piece at the target square(if any)
 
+        # Check if the destination square contains a piece of the same color
+        if target_piece and target_piece.color == color:
+            return False
+
+        # Check if the piece at the start square is of the correct color
         if piece and piece.color == color:
             if isinstance(piece, King):
-                piece.is_valid_move(start, end, self.board)
-
-                self.has_moved = True
-                # Castling move
-                if abs(start[0] - end[0]) == 2:
-                    row = start[1]
-                    if end[0] == 6:  # Kingside
-                        self.board[5][row] = self.board[7][row]
-                        self.board[7][row] = None
-                    elif end[0] == 2:  # Queenside
-                        self.board[3][row] = self.board[0][row]
-                        self.board[0][row] = None
-                self.board[end_x][end_y] = piece
-                self.board[start_x][start_y] = None
-                return True
+                if piece.is_valid_move(start, end, self.board):
+                    self.has_moved = True
+                    # Castling move
+                    if abs(start[0] - end[0]) == 2:
+                        row = start[1]
+                        if end[0] == 6:  # Kingside
+                            self.board[5][row] = self.board[7][row]
+                            self.board[7][row] = None
+                        elif end[0] == 2:  # Queenside
+                            self.board[3][row] = self.board[0][row]
+                            self.board[0][row] = None
+                    self.board[end_x][end_y] = piece
+                    self.board[start_x][start_y] = None
+                    self.white_king_position = (end_x, end_y) if color == 'white' else self.white_king_position
+                    self.black_king_position = (end_x, end_y) if color == 'black' else self.black_king_position
+                    return True
             if isinstance(piece, Pawn) and last_move and isinstance(last_move[2], Pawn) and piece.is_valid_move(start, end, self.board, last_move):
                 self.board[end_x][end_y] = piece
                 self.board[start_x][start_y] = None
                 return True
             if piece.is_valid_move(start, end, self.board):
+                # Save the state of the board for check validation
+                target_piece = self.board[end_x][end_y]
                 self.board[end_x][end_y] = piece
                 self.board[start_x][start_y] = None
+                
+                # Check if this move leaves the king in check
+                if self.is_in_check(color):
+                    # Revert move if it results in check
+                    self.board[start_x][start_y] = piece
+                    self.board[end_x][end_y] = target_piece
+                    return False
+
                 return True
+        return False
+
+    def is_in_check(self, color):
+        """Determine if the king of the given color is in check."""
+        king_position = self.white_king_position if color == 'white' else self.black_king_position
+        opponent_color = 'black' if color == 'white' else 'white'
+
+        # Check if any of the opponent's pieces can move to the king's position
+        for x in range(8):
+            for y in range(8):
+                piece = self.board[x][y]
+                if piece and piece.color == opponent_color:
+                    if piece.is_valid_move((x, y), king_position, self.board):
+                        return True
+        return False
+
+    def has_legal_moves(self, color):
+        """Determine if the player has any legal moves remaining."""
+        for x in range(8):
+            for y in range(8):
+                piece = self.board[x][y]
+                if piece and piece.color == color:
+                    for dx in range(8):
+                        for dy in range(8):
+                            if (x, y) != (dx, dy) and piece.is_valid_move((x, y), (dx, dy), self.board):
+                                # Temporarily make the move
+                                target_piece = self.board[dx][dy]
+                                self.board[dx][dy] = piece
+                                self.board[x][y] = None
+
+                                # Check if this move leaves the king in check
+                                if not self.is_in_check(color):
+                                    # Undo the move and return True (legal move found)
+                                    self.board[x][y] = piece
+                                    self.board[dx][dy] = target_piece
+                                    return True
+
+                                # Undo the move
+                                self.board[x][y] = piece
+                                self.board[dx][dy] = target_piece
         return False
 
 
@@ -272,6 +330,18 @@ def main():
     while True:
         board.display()
         print(f"{turn.capitalize()}'s move")
+
+        # Check for checkmate or stalemate
+        if board.is_in_check(turn):
+            if not board.has_legal_moves(turn):
+                print(f"Checkmate! {('Black' if turn == 'white' else 'White')} wins!")
+                break
+            else:
+                print(f"{turn.capitalize()} is in check.")
+        elif not board.has_legal_moves(turn):
+            print("Stalemate! The game is a draw.")
+            break
+
         move = input("Enter your move: ").strip().lower()
 
         try:
