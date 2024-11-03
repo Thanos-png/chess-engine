@@ -37,6 +37,7 @@ class Pawn(ChessPiece):
             if last_move and isinstance(last_move[2], Pawn):
                 last_start, last_end, last_piece = last_move
                 if last_end == (end_x, start_y) and abs(last_start[1] - last_end[1]) == 2:
+                    board[last_end[0]][last_end[1]] = None
                     return True
         return False
 
@@ -216,7 +217,7 @@ class ChessBoard:
             print(f"{y+1}")
         print("  a b c d e f g h\n")
 
-    def move_piece(self, start, end, color):
+    def move_piece(self, start, end, color, last_move):
         """Moves a piece from the start position to the end position if it is a valid move."""
         if (start == end):
             return False
@@ -243,6 +244,10 @@ class ChessBoard:
                     elif end[0] == 2:  # Queenside
                         self.board[3][row] = self.board[0][row]
                         self.board[0][row] = None
+                self.board[end_x][end_y] = piece
+                self.board[start_x][start_y] = None
+                return True
+            if isinstance(piece, Pawn) and last_move and isinstance(last_move[2], Pawn) and piece.is_valid_move(start, end, self.board, last_move):
                 self.board[end_x][end_y] = piece
                 self.board[start_x][start_y] = None
                 return True
@@ -276,7 +281,7 @@ def main():
             piece = board.board[start[0]][start[1]]
 
             if piece and piece.color == turn:
-                if board.move_piece(start, end, turn):
+                if board.move_piece(start, end, turn, last_move):
                     last_move = (start, end, piece)
                     turn = 'black' if turn == 'white' else 'white'
                 else:
