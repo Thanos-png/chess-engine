@@ -236,6 +236,29 @@ class ChessBoard:
             print(f"{y+1}")
         print("  a b c d e f g h\n")
 
+    def promote_pawn(self, position, color):
+        """Promote a pawn that reaches the final rank to a new piece chosen by the player."""
+        x, y = position
+        while True:
+            choice = input("Promote pawn to (Q)ueen, (R)ook, (B)ishop, or (K)night: ").strip().upper()
+            if choice == 'Q':
+                self.board[x][y] = Queen(color)
+                break
+            elif choice == 'R':
+                self.board[x][y] = Rook(color)
+                break
+            elif choice == 'B':
+                self.board[x][y] = Bishop(color)
+                break
+            elif choice == 'K':
+                self.board[x][y] = Knight(color)
+                break
+            else:
+                print("Invalid choice. Please select Q, R, B, or K.")
+        
+        # Update pieces dictionary to reflect the promoted piece
+        self.pieces[color][position] = self.board[x][y]
+
     def move_piece(self, start, end, color, last_move):
         """Moves a piece from the start position to the end position if it is a valid move."""
         if (start == end):
@@ -276,9 +299,17 @@ class ChessBoard:
                         return True
                     return False
             if isinstance(piece, Pawn) and last_move and isinstance(last_move[2], Pawn) and piece.is_valid_move(start, end, self.board, last_move):
-                return self.move_piece_helper(start, end, self.board, color)
+                if self.move_piece_helper(start, end, self.board, color):
+                    # Check for pawn promotion
+                    if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
+                        self.promote_pawn((end_x, end_y), color)
+                    return True
             if piece.is_valid_move(start, end, self.board):
-                return self.move_piece_helper(start, end, self.board, color)
+                if self.move_piece_helper(start, end, self.board, color):
+                    # Check for pawn promotion
+                    if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
+                        self.promote_pawn((end_x, end_y), color)
+                    return True
         return False
 
     def move_piece_helper(self, start, end, board, color):
@@ -349,6 +380,7 @@ class ChessBoard:
 
         # Check if the king is currently in check 
         in_check = self.is_in_check(color)
+        protected_piece = False  # Flag to check if the piece that is checking the king is protected
 
         # Check if the king can escape check by moving to a different square
         if in_check:
@@ -374,9 +406,7 @@ class ChessBoard:
                             self.black_king_position = king_position
 
                         # Check if the piece that the king is trying to capture is protected is protected
-                        if (self.get_checking_piece(king_position, opponent_color) == (None, None)):
-                            protected_piece = False
-                        else:
+                        if (not self.get_checking_piece(king_position, opponent_color) == (None, None)):
                             protected_piece = True
 
                         # Check if this move takes the king out of check
@@ -384,6 +414,7 @@ class ChessBoard:
                             # Undo the move and return True (legal escape found)
                             self.board[king_x][king_y] = self.board[new_x][new_y]
                             self.board[new_x][new_y] = piece
+                            print(f"{color.capitalize()} is in check.")
                             king_position = king_x, king_y
                             if (color == "white"):
                                 self.white_king_position = king_position
@@ -413,6 +444,7 @@ class ChessBoard:
                             # Undo move and return True (legal move found)
                             self.board[pos[0]][pos[1]] = piece
                             self.board[checking_position[0]][checking_position[1]] = captured_piece
+                            print(f"{color.capitalize()} is in check.")
                             return True
 
                         # Undo the move
@@ -424,7 +456,7 @@ class ChessBoard:
                 blocking_squares = self.get_blocking_squares(king_position, checking_position)
                 for pos, piece in self.pieces[color].items():
                     for square in blocking_squares:
-                        if piece.is_valid_move(pos, square, self.board):
+                        if not isinstance(piece, King) and piece.is_valid_move(pos, square, self.board):
                             # Temporarily make the block
                             original_piece = self.board[square[0]][square[1]]
                             self.board[square[0]][square[1]] = piece
@@ -434,6 +466,7 @@ class ChessBoard:
                                 # Undo move and return True (legal move found)
                                 self.board[pos[0]][pos[1]] = piece
                                 self.board[square[0]][square[1]] = original_piece
+                                print(f"{color.capitalize()} is in check.")
                                 return True
 
                             # Undo the move
@@ -441,6 +474,7 @@ class ChessBoard:
                             self.board[square[0]][square[1]] = original_piece
 
             # No legal moves were found and the king is in check, so it's checkmate
+            print(f"Checkmate! {('Black' if color == 'white' else 'White')} wins!")
             return False
 
         # If not in check, check for any legal moves (stalemate)
@@ -465,6 +499,7 @@ class ChessBoard:
                         self.board[dx][dy] = target_piece
 
         # No legal moves were found and the king is not in check, so it's stalemate
+        print("Stalemate! The game is a draw.")
         return False
 
 
@@ -484,15 +519,7 @@ def main():
         print(f"{turn.capitalize()}'s move")
 
         # Check for checkmate or stalemate
-        in_check = board.is_in_check(turn)
-        if in_check:
-            if not board.has_legal_moves(turn):
-                print(f"Checkmate! {('Black' if turn == 'white' else 'White')} wins!")
-                break
-            else:
-                print(f"{turn.capitalize()} is in check.")
-        elif not board.has_legal_moves(turn):
-            print("Stalemate! The game is a draw.")
+        if not board.has_legal_moves(turn):
             break
 
         move = input("Enter your move: ").strip().lower()
