@@ -166,8 +166,7 @@ class King(ChessPiece):
     def __str__(self):
         return '♔' if self.color == 'white' else '♚'
 
-    ######################################## Missing implementation for the case that the squares are under enemy control ########################################
-    def is_valid_move(self, start, end, board):
+    def is_valid_move(self, start, end, board, board_instance=None):
         """A king can move one square in any direction. It can also castle if certain conditions are met."""
         dx = abs(start[0] - end[0])
         dy = abs(start[1] - end[1])
@@ -175,15 +174,29 @@ class King(ChessPiece):
         # Normal king move
         if (max(dx, dy) == 1):
             return True
+
         # Castling move
         if dx == 2 and dy == 0 and not self.has_moved:
             row = start[1]
+
             # Kingside castling
-            if end[0] == 6 and isinstance(board[7][row], Rook) and not board[7][row].has_moved:  # Check if rook is there and hasn't moved
-                return board[5][row] is None and board[6][row] is None
+            # Check if squares between the king and rook are empty and not under attack
+            if end[0] == 6:
+                if isinstance(board[7][row], Rook) and not board[7][row].has_moved and board_instance:  # Check if rook is there and hasn't moved
+                    # Check if path is clear and safe (f1 and g1 for white, f8 and g8 for black)
+                    if (board[5][row] is None and board[6][row] is None and
+                        not board_instance.is_square_under_attack((5, row), self.color) and
+                        not board_instance.is_square_under_attack((6, row), self.color)):
+                        return True
+            
             # Queenside castling
-            elif end[0] == 2 and isinstance(board[0][row], Rook) and not board[0][row].has_moved:  # Check if rook is there and hasn't moved
-                return board[1][row] is None and board[2][row] is None and board[3][row] is None
+            elif end[0] == 2:
+                if isinstance(board[0][row], Rook) and not board[0][row].has_moved and board_instance:  # Check if rook is there and hasn't moved
+                    # Check if path is clear and safe (d1, c1, and b1 for white; d8, c8, and b8 for black)
+                    if (board[1][row] is None and board[2][row] is None and board[3][row] is None and
+                        not board_instance.is_square_under_attack((2, row), self.color) and
+                        not board_instance.is_square_under_attack((3, row), self.color)):
+                        return True
         return False
 
 
@@ -236,6 +249,17 @@ class ChessBoard:
             print(f"{y+1}")
         print("  a b c d e f g h\n")
 
+    def is_square_under_attack(self, square, color):
+        """Check if a square is under attack by any piece of the opponent's color."""
+        opponent_color = 'black' if color == 'white' else 'white'
+        x, y = square
+
+        # Iterate over all opponent's pieces to check if any can move to the target square
+        for pos, piece in self.pieces[opponent_color].items():
+            if piece.is_valid_move(pos, (x, y), self.board):
+                return True
+        return False
+
     def promote_pawn(self, position, color):
         """Promote a pawn that reaches the final rank to a new piece chosen by the player."""
         x, y = position
@@ -280,7 +304,7 @@ class ChessBoard:
         # Check if the piece at the start square is of the correct color
         if piece and piece.color == color:
             if isinstance(piece, King):
-                if piece.is_valid_move(start, end, self.board):
+                if piece.is_valid_move(start, end, self.board, self):
                     if self.move_piece_helper(start, end, self.board, color):
                         self.has_moved = True
                         # Castling move
@@ -339,12 +363,9 @@ class ChessBoard:
         opponent_color = 'black' if color == 'white' else 'white'
 
         # Check if any of the opponent's pieces can move to the king's position
-        for x in range(8):
-            for y in range(8):
-                piece = self.board[x][y]
-                if piece and piece.color == opponent_color:
-                    if piece.is_valid_move((x, y), king_position, self.board):
-                        return True
+        for pos, piece in self.pieces[opponent_color].items():
+            if piece.is_valid_move(pos, king_position, self.board):
+                return True  # King is in check
         return False
 
     def get_blocking_squares(self, king_position, checking_position):
@@ -365,7 +386,7 @@ class ChessBoard:
     def get_checking_piece(self, king_position, opponent_color):
         """Return the position and piece that is checking the king, if any."""
         for pos, piece in self.pieces[opponent_color].items():
-            if piece.is_valid_move(pos, king_position, self.board):
+            if not isinstance(piece, King) and piece.is_valid_move(pos, king_position, self.board):
                 return pos, piece
         return None, None
 
@@ -536,16 +557,13 @@ def main():
                     turn = 'black' if turn == 'white' else 'white'
                 else:
                     print("""
-Invalid move, try again.
-                    """)
+Invalid move, try again.""")
             else:
                 print("""
-No valid piece to move at that position.
-                """)
+No valid piece to move at that position.""")
         except (ValueError, IndexError):
             print("""
-Invalid input, format should be 'e2 e4'.
-            """)
+Invalid input, format should be 'e2 e4'.""")
 
 if __name__ == "__main__":
     main()
