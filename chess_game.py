@@ -180,7 +180,6 @@ class King(ChessPiece):
             row = start[1]
 
             # Kingside castling
-            # Check if squares between the king and rook are empty and not under attack
             if end[0] == 6:
                 if isinstance(board[7][row], Rook) and not board[7][row].has_moved and board_instance:  # Check if rook is there and hasn't moved
                     # Check if path is clear and safe (f1 and g1 for white, f8 and g8 for black)
@@ -390,7 +389,6 @@ class ChessBoard:
                 return pos, piece
         return None, None
 
-    # def has_legal_moves(self, color, in_check=None):   # Sometimes we already know the king is in check
     def has_legal_moves(self, color):
         """Determine if the player has any legal moves remaining.
         If the king is in check, check if there is a way to escape check (either by moving the king,
