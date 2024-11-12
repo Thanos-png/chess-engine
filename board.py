@@ -449,12 +449,18 @@ class ChessBoard:
                             # Undo the move and return True (legal escape found)
                             self.board[king_x][king_y] = self.board[new_x][new_y]
                             self.board[new_x][new_y] = piece
-                            print(f"{color.capitalize()} is in check.")
+
                             king_position = king_x, king_y
                             if (color == "white"):
                                 self.white_king_position = king_position
                             else:
                                 self.black_king_position = king_position
+
+                            # Check for draw by 50-move rule
+                            if (halfmove_clock == 50):
+                                print("Draw by 50-move rule.")
+                                return False
+                            print(f"{color.capitalize()} is in check.")
                             return True
 
                         # Undo the move
@@ -479,6 +485,11 @@ class ChessBoard:
                             # Undo move and return True (legal move found)
                             self.board[pos[0]][pos[1]] = piece
                             self.board[checking_position[0]][checking_position[1]] = captured_piece
+
+                            # Check for draw by 50-move rule
+                            if (halfmove_clock == 50):
+                                print("Draw by 50-move rule.")
+                                return False
                             print(f"{color.capitalize()} is in check.")
                             return True
 
@@ -501,6 +512,11 @@ class ChessBoard:
                                 # Undo move and return True (legal move found)
                                 self.board[pos[0]][pos[1]] = piece
                                 self.board[square[0]][square[1]] = original_piece
+
+                                # Check for draw by 50-move rule
+                                if (halfmove_clock == 50):
+                                    print("Draw by 50-move rule.")
+                                    return False
                                 print(f"{color.capitalize()} is in check.")
                                 return True
 
@@ -527,6 +543,11 @@ class ChessBoard:
                             # Undo the move and return True (legal move found)
                             self.board[pos[0]][pos[1]] = piece
                             self.board[dx][dy] = target_piece
+
+                            # Check for draw by 50-move rule
+                            if (halfmove_clock == 50):
+                                print("Draw by 50-move rule.")
+                                return False
                             return True
 
                         # Undo the move
