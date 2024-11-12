@@ -28,11 +28,12 @@ class Pawn(ChessPiece):
             if board[end_x][end_y] is not None:
                 return True
             # En passant capture
-            en_passant_square = board_instance.en_passant_square
-            if en_passant_square and end == parse_position(en_passant_square):
-                # Remove the en-passant-captured pawn
-                opponent_color = 'black' if self.color == 'white' else 'white'
-                del board_instance.getPieces()[opponent_color][(end_x, start_y)]
-                board[end_x][start_y] = None
-                return True
+            if board_instance:
+                en_passant_square = board_instance.en_passant_square
+                if en_passant_square and end == parse_position(en_passant_square):
+                    # Remove the en-passant-captured pawn
+                    opponent_color = 'black' if self.color == 'white' else 'white'
+                    del board_instance.getPieces()[opponent_color][(end_x, start_y)]
+                    board[end_x][start_y] = None
+                    return True
         return False

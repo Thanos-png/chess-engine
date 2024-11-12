@@ -17,8 +17,8 @@ class ChessBoard:
         self.turn = 'white'
         self.castling_rights = {'K': True, 'Q': True, 'k': True, 'q': True}
         self.en_passant_square = None  # Square where an en passant capture is possible
-        self.halfmove_clock = 0
-        self.fullmove_number = 0
+        self.halfmove_clock = 0  # Number of halfmoves since the last capture or pawn advance
+        self.fullmove_number = 1  #How many turns have been played
 
     # Getter for pieces
     def getPieces(self):
@@ -75,6 +75,14 @@ class ChessBoard:
                             return
         self.setEnPassantSquare(None)
 
+    def updateHalfMoveClock(self):
+        """Increment the halfmove clock if a non-capturing or non-pawn move is made."""
+        self.halfmove_clock += 1
+
+    def updateFullMoveNumber(self):
+        """Increment the fullmove number after blacks's move."""
+        self.fullmove_number += 1
+
     def setup_board(self):
         """Sets up the chess board with pieces in their initial positions."""
         for i in range(8):
@@ -118,22 +126,28 @@ class ChessBoard:
         """Convert the current board state to FEN notation."""
         fen = []
 
-        # Piece positions
-        for row in self.board:
+        # Iterate over each row from top (rank 8) to bottom (rank 1)
+        for y in range(7, -1, -1):
             empty_count = 0
             row_fen = ''
-            for piece in row:
+
+            # Iterate over each column within the current row
+            for x in range(8):
+                piece = self.board[x][y]  # Access each "row" as a column in column-major order
+
                 if piece is None:
                     empty_count += 1
                 else:
                     if empty_count > 0:
                         row_fen += str(empty_count)
                         empty_count = 0
-                    row_fen += str(piece)
+                    row_fen += self.create_piece_for_fen(piece)
+
+            # If there were empty squares at the end of the row, add the count
             if empty_count > 0:
                 row_fen += str(empty_count)
-            fen.append(row_fen)
-        fen = '/'.join(fen)
+            fen.append(row_fen)  # Append the row's FEN representation to the overall FEN
+        fen = '/'.join(fen)  # Join the rows with '/' to separate them
 
         # Turn
         fen += ' w ' if self.turn == 'white' else ' b '
@@ -190,6 +204,26 @@ class ChessBoard:
 
         # Fullmove number
         self.fullmove_number = int(parts[5])
+
+    def create_piece_for_fen(self, piece):
+        """Create the piece character representation for a FEN."""
+        char = None
+        if isinstance(piece, Pawn):
+            char = 'p'
+        elif isinstance(piece, Rook):
+            char = 'r'
+        elif isinstance(piece, Knight):
+            char = 'n'
+        elif isinstance(piece, Bishop):
+            char = 'b'
+        elif isinstance(piece, Queen):
+            char = 'q'
+        elif isinstance(piece, King):
+            char = 'k'
+        
+        if piece and piece.color == 'white':
+            char = char.upper()
+        return char
 
     def create_piece_from_fen(self, char):
         """Create a piece from a FEN character."""
@@ -281,17 +315,36 @@ class ChessBoard:
                             self.white_king_position = (end_x, end_y)
                         else:
                             self.black_king_position = (end_x, end_y)
+
+                        # Update fullmove number
+                        if color == 'black':
+                            self.updateFullMoveNumber()
+                        self.updateHalfMoveClock()  # Increment halfmove clock
                         return True
                     return False
             # Check for en passant capture
             if self.en_passant_square and isinstance(piece, Pawn) and piece.is_valid_move(start, end, self.board, self):
                 if self.move_piece_helper(start, end, self.board, color):
+                    # Update fullmove number
+                    if color == 'black':
+                        self.updateFullMoveNumber()
+                    # Reset halfmove clock because a pawn was moved
+                    self.halfmove_clock = 0
                     return True
             if piece.is_valid_move(start, end, self.board):
                 if self.move_piece_helper(start, end, self.board, color):
+                    self.updateHalfMoveClock()  # Increment halfmove clock
+
                     # Check for pawn promotion
-                    if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
-                        self.promote_pawn((end_x, end_y), color)
+                    if isinstance(piece, Pawn):
+                        # Reset halfmove clock because a pawn was moved
+                        self.halfmove_clock = 0
+                        if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
+                            self.promote_pawn((end_x, end_y), color)
+
+                    # Update fullmove number
+                    if color == 'black':
+                        self.updateFullMoveNumber()
                     return True
         return False
 
@@ -313,6 +366,9 @@ class ChessBoard:
             self.board[end_x][end_y] = target_piece
             return False
 
+        # Reset halfmove clock because a piece is captured
+        if target_piece and target_piece.color != color:
+            self.halfmove_clock = 0
         self.update_piece_position(start, end)
         return True
 

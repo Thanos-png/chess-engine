@@ -6,10 +6,7 @@ from utils import parse_position
 def main():
     board = ChessBoard()
     turn = board.turn
-    # Those variables are only used if we want to implement FEN notation and load a game halfway in 
     # castling_rights = board.castling_rights
-    # halfmove_clock = board.halfmove_clock
-    fullmove_number = board.fullmove_number
     last_move = None  # To track last move for en passant
 
     while True:
@@ -33,9 +30,6 @@ def main():
 
             if piece and piece.color == turn:
                 if board.move_piece(start, end, turn):
-                    if turn == 'white':
-                        fullmove_number += 1
-                        board.setFullMoveNumber(fullmove_number)
                     turn = 'black' if turn == 'white' else 'white'
                     last_move = (start, end, piece)
                     board.updateEnPassantSquare(turn, last_move)
