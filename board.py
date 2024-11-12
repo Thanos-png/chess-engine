@@ -20,6 +20,10 @@ class ChessBoard:
         self.halfmove_clock = 0
         self.fullmove_number = 0
 
+    # Getter for pieces
+    def getPieces(self):
+        return self.pieces
+
     # Setter for turn
     def setTurn(self, turn):
         if turn in ('white', 'black'):
@@ -56,25 +60,19 @@ class ChessBoard:
         else:
             raise ValueError("Fullmove number must be a positive integer.")
 
-    def updateEnPassantSquare(self, start, end, color, last_move):
+    def updateEnPassantSquare(self, color, last_move):
         """Update en_passant_square based on the last move."""
-        color = 'white' if color == 'black' else 'black'
-        direction = 1 if color == 'white' else -1
-        start_x, start_y = start
-        end_x, end_y = end
-
         if last_move and isinstance(last_move[2], Pawn):
-            # Check if we can make a move with one of our(color) pawns such that it can capture the en passant pawn
-
-        # Standard capture
-        if abs(start_x - end_x) == 1 and start_y + direction == end_y:
-            # En passant capture
-            if last_move and isinstance(last_move[2], Pawn):
-                last_start, last_end, last_piece = last_move
-                if last_end == (end_x, start_y) and abs(last_start[1] - last_end[1]) == 2:
-                    self.board[last_end[0]][last_end[1]] = None
-                    print(f"En passant: {to_square_notation(end)}")
-                    self.setEnPassantSquare(to_square_notation(end))
+            # Check if the last move was a double pawn push
+            if abs(last_move[0][1] - last_move[1][1]) == 2:
+                # Check if the pawn that moved two squares forward has any neighboring (left and right) pawns
+                for dx in [-1, 1]:
+                    neighbor_x = last_move[1][0] + dx
+                    if 0 <= neighbor_x < 8:
+                        neighbor_piece = self.board[neighbor_x][last_move[1][1]]
+                        if isinstance(neighbor_piece, Pawn) and neighbor_piece.color == color:
+                            self.setEnPassantSquare(to_square_notation((last_move[1][0], (last_move[0][1] + last_move[1][1]) // 2)))
+                            return
         self.setEnPassantSquare(None)
 
     def setup_board(self):
@@ -246,7 +244,7 @@ class ChessBoard:
         # Update pieces dictionary to reflect the promoted piece
         self.pieces[color][position] = self.board[x][y]
 
-    def move_piece(self, start, end, color, last_move):
+    def move_piece(self, start, end, color):
         """Moves a piece from the start position to the end position if it is a valid move."""
         if (start == end):
             return False
@@ -286,11 +284,8 @@ class ChessBoard:
                         return True
                     return False
             # Check for en passant capture
-            if isinstance(piece, Pawn) and last_move and isinstance(last_move[2], Pawn) and piece.is_valid_move(start, end, self.board, last_move):
+            if self.en_passant_square and isinstance(piece, Pawn) and piece.is_valid_move(start, end, self.board, self):
                 if self.move_piece_helper(start, end, self.board, color):
-                    # Check for pawn promotion
-                    if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
-                        self.promote_pawn((end_x, end_y), color)
                     return True
             if piece.is_valid_move(start, end, self.board):
                 if self.move_piece_helper(start, end, self.board, color):

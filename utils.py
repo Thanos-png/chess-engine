@@ -5,7 +5,7 @@ def parse_position(pos):
     col, row = pos
     return ord(col) - ord('a'), int(row) - 1
 
-def to_square_notation(position):
+def to_square_notation(pos):
     """Convert (x, y) board coordinates to chess notation, e.g. (4, 4) -> 'e5'."""
-    col, row = position
+    col, row = pos
     return f"{chr(col + ord('a'))}{row + 1}"
