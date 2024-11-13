@@ -19,6 +19,7 @@ class ChessBoard:
         self.en_passant_square = None  # Square where an en passant capture is possible
         self.halfmove_clock = 0  # Number of halfmoves since the last capture or pawn advance
         self.fullmove_number = 1  #How many turns have been played
+        self.board_history = {}  # Dictionary to store FEN and their counts for threefold repetition draw
 
     # Getter for pieces
     def getPieces(self):
@@ -60,8 +61,14 @@ class ChessBoard:
         else:
             raise ValueError("Fullmove number must be a positive integer.")
 
+    def updateTurn(self):
+        """Update the turn after a move is made."""
+        self.turn = 'black' if self.turn == 'white' else 'white'
+        return self.turn
+
     def updateCastlingRights(self, color, start, end):
         """Update castling rights if the king is moved or a rook is moved or captured."""
+        prev_castling_rights = self.castling_rights.copy()
         if color == 'white':
             # Check if the white king or a white rook is moved
             if start == (4, 0):
@@ -92,6 +99,10 @@ class ChessBoard:
                 self.castling_rights['Q'] = False
             elif end == (7, 0):
                 self.castling_rights['K'] = False
+
+        # Clear board history if castling rights change
+        if prev_castling_rights != self.castling_rights:
+            self.board_history.clear()
 
     def updateEnPassantSquare(self, color, last_move):
         """Update en_passant_square based on the last move."""
@@ -155,6 +166,22 @@ class ChessBoard:
             print(f"{y+1}")
         print("  a b c d e f g h\n")
 
+    def checkThreefoldRepetition(self):
+        """Check if the current board state has occurred three times."""
+        current_state = self.to_fen().rsplit(' ', 2)[0]  # Update the current state of the board without halfmove_clock and fullmove_number
+        self.board_history[current_state] = self.board_history.get(current_state, 0) + 1  # Update board history
+        if self.board_history.get(current_state, 0) >= 3:
+            print("Draw by threefold repetition.")
+            return True
+        return False
+
+    def checkFiftyMoveRule(self):
+        """Check if the game has reached a draw by the fifty-move rule."""
+        if self.halfmove_clock >= 50:
+            print("Draw by fifty-move rule.")
+            return True
+        return False
+
     def to_fen(self):
         """Convert the current board state to FEN notation."""
         fen = []
@@ -206,16 +233,25 @@ class ChessBoard:
 
         # Piece positions
         rows = parts[0].split('/')
-        self.board = []
-        for row in rows:
-            board_row = []
+        self.board = [[None] * 8 for _ in range(8)]  # Reset the board
+        self.pieces = {'white': {}, 'black': {}}  # Reset the pieces dictionary
+
+        for y, row in enumerate(rows):
+            x = 0
             for char in row:
                 if char.isdigit():
-                    board_row.extend([None] * int(char))
+                    x += int(char)
                 else:
                     piece = self.create_piece_from_fen(char)
-                    board_row.append(piece)
-            self.board.append(board_row)
+                    self.board[x][7 - y] = piece
+                    if piece:
+                        self.pieces[piece.color][(x, 7 - y)] = piece  # Add the piece to the pieces dictionary
+                        if isinstance(piece, King):
+                            if piece.color == 'white':
+                                self.white_king_position = (x, 7 - y)
+                            else:
+                                self.black_king_position = (x, 7 - y)
+                    x += 1
 
         # Turn
         self.turn = 'white' if parts[1] == 'w' else 'black'
@@ -357,14 +393,25 @@ class ChessBoard:
                         return True
                 return False
             # Check for en passant capture
+            en_passant_target_pawn = self.board[end_x][start_y]  # Pawn that can be captured en passant if any
             if self.en_passant_square and isinstance(piece, Pawn) and piece.is_valid_move(start, end, self.board, self):
                 if self.move_piece_helper(start, end, self.board, color):
+                    # Remove the captured pawn from the pieces dictionary
+                    opponent_color = 'black' if color == 'white' else 'white'
+                    del board_instance.getPieces()[opponent_color][(end_x, start_y)]
+
                     # Update fullmove number
                     if color == 'black':
                         self.updateFullMoveNumber()
+
                     # Reset halfmove clock because a pawn was moved
                     self.halfmove_clock = 0
+
+                    # Clear board history after an en passant capture
+                    self.board_history.clear()
                     return True
+                # Restore the enemy pawn that was captured en passant
+                self.board[end_x][start_y] = en_passant_target_pawn
                 return False
             if piece.is_valid_move(start, end, self.board):
                 if self.move_piece_helper(start, end, self.board, color):
@@ -372,6 +419,9 @@ class ChessBoard:
 
                     # Check for pawn promotion
                     if isinstance(piece, Pawn):
+                        # Clear board history after a pawn move
+                        self.board_history.clear()
+
                         # Reset halfmove clock because a pawn was moved
                         self.halfmove_clock = 0
                         if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
@@ -380,6 +430,7 @@ class ChessBoard:
                     # Update fullmove number
                     if color == 'black':
                         self.updateFullMoveNumber()
+
                     # Update castling rights because a rook moved or was captured
                     if isinstance(piece, Rook) or end == (0, 0) or end == (7, 0) or end == (0, 7) or end == (7, 7):
                         self.updateCastlingRights(color, start, end)
@@ -494,10 +545,6 @@ class ChessBoard:
                             else:
                                 self.black_king_position = king_position
 
-                            # Check for draw by 50-move rule
-                            if (self.halfmove_clock == 50):
-                                print("Draw by 50-move rule.")
-                                return False
                             print(f"{color.capitalize()} is in check.")
                             return True
 
@@ -524,10 +571,6 @@ class ChessBoard:
                             self.board[pos[0]][pos[1]] = piece
                             self.board[checking_position[0]][checking_position[1]] = captured_piece
 
-                            # Check for draw by 50-move rule
-                            if (self.halfmove_clock == 50):
-                                print("Draw by 50-move rule.")
-                                return False
                             print(f"{color.capitalize()} is in check.")
                             return True
 
@@ -551,10 +594,6 @@ class ChessBoard:
                                 self.board[pos[0]][pos[1]] = piece
                                 self.board[square[0]][square[1]] = original_piece
 
-                                # Check for draw by 50-move rule
-                                if (self.halfmove_clock == 50):
-                                    print("Draw by 50-move rule.")
-                                    return False
                                 print(f"{color.capitalize()} is in check.")
                                 return True
 
@@ -582,10 +621,6 @@ class ChessBoard:
                             self.board[pos[0]][pos[1]] = piece
                             self.board[dx][dy] = target_piece
 
-                            # Check for draw by 50-move rule
-                            if (self.halfmove_clock == 50):
-                                print("Draw by 50-move rule.")
-                                return False
                             return True
 
                         # Undo the move

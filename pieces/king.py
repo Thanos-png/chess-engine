@@ -1,5 +1,6 @@
 
 from .piece import ChessPiece
+from .rook import Rook
 
 class King(ChessPiece):
     def __init__(self, color):
