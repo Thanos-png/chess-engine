@@ -6,7 +6,6 @@ from utils import parse_position
 def main():
     board = ChessBoard()
     turn = board.turn
-    # castling_rights = board.castling_rights
     last_move = None  # To track last move for en passant
 
     while True:

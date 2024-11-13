@@ -60,6 +60,39 @@ class ChessBoard:
         else:
             raise ValueError("Fullmove number must be a positive integer.")
 
+    def updateCastlingRights(self, color, start, end):
+        """Update castling rights if the king is moved or a rook is moved or captured."""
+        if color == 'white':
+            # Check if the white king or a white rook is moved
+            if start == (4, 0):
+                self.castling_rights['K'] = False
+                self.castling_rights['Q'] = False
+            elif start == (0, 0):
+                self.castling_rights['Q'] = False
+            elif start == (7, 0):
+                self.castling_rights['K'] = False
+
+            # Check if a black rook is captured
+            if end == (0, 7):
+                self.castling_rights['q'] = False
+            elif end == (7, 7):
+                self.castling_rights['k'] = False
+        else:
+            # Check if the black king or a black rook is moved
+            if start == (4, 7):
+                self.castling_rights['k'] = False
+                self.castling_rights['q'] = False
+            elif start == (0, 7):
+                self.castling_rights['q'] = False
+            elif start == (7, 7):
+                self.castling_rights['k'] = False
+
+            # Check if a white rook is captured
+            if end == (0, 0):
+                self.castling_rights['Q'] = False
+            elif end == (7, 0):
+                self.castling_rights['K'] = False
+
     def updateEnPassantSquare(self, color, last_move):
         """Update en_passant_square based on the last move."""
         if last_move and isinstance(last_move[2], Pawn):
@@ -320,8 +353,9 @@ class ChessBoard:
                         if color == 'black':
                             self.updateFullMoveNumber()
                         self.updateHalfMoveClock()  # Increment halfmove clock
+                        self.updateCastlingRights(color, start, end)  # Update castling rights because the king moved
                         return True
-                    return False
+                return False
             # Check for en passant capture
             if self.en_passant_square and isinstance(piece, Pawn) and piece.is_valid_move(start, end, self.board, self):
                 if self.move_piece_helper(start, end, self.board, color):
@@ -331,6 +365,7 @@ class ChessBoard:
                     # Reset halfmove clock because a pawn was moved
                     self.halfmove_clock = 0
                     return True
+                return False
             if piece.is_valid_move(start, end, self.board):
                 if self.move_piece_helper(start, end, self.board, color):
                     self.updateHalfMoveClock()  # Increment halfmove clock
@@ -345,6 +380,9 @@ class ChessBoard:
                     # Update fullmove number
                     if color == 'black':
                         self.updateFullMoveNumber()
+                    # Update castling rights because a rook moved or was captured
+                    if isinstance(piece, Rook) or end == (0, 0) or end == (7, 0) or end == (0, 7) or end == (7, 7):
+                        self.updateCastlingRights(color, start, end)
                     return True
         return False
 
@@ -457,7 +495,7 @@ class ChessBoard:
                                 self.black_king_position = king_position
 
                             # Check for draw by 50-move rule
-                            if (halfmove_clock == 50):
+                            if (self.halfmove_clock == 50):
                                 print("Draw by 50-move rule.")
                                 return False
                             print(f"{color.capitalize()} is in check.")
@@ -487,7 +525,7 @@ class ChessBoard:
                             self.board[checking_position[0]][checking_position[1]] = captured_piece
 
                             # Check for draw by 50-move rule
-                            if (halfmove_clock == 50):
+                            if (self.halfmove_clock == 50):
                                 print("Draw by 50-move rule.")
                                 return False
                             print(f"{color.capitalize()} is in check.")
@@ -514,7 +552,7 @@ class ChessBoard:
                                 self.board[square[0]][square[1]] = original_piece
 
                                 # Check for draw by 50-move rule
-                                if (halfmove_clock == 50):
+                                if (self.halfmove_clock == 50):
                                     print("Draw by 50-move rule.")
                                     return False
                                 print(f"{color.capitalize()} is in check.")
@@ -545,7 +583,7 @@ class ChessBoard:
                             self.board[dx][dy] = target_piece
 
                             # Check for draw by 50-move rule
-                            if (halfmove_clock == 50):
+                            if (self.halfmove_clock == 50):
                                 print("Draw by 50-move rule.")
                                 return False
                             return True
