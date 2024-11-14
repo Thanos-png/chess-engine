@@ -4,6 +4,10 @@
 
 [Coding Adventure: Making a Better Chess Bot](https://www.youtube.com/watch?v=_vqlIPDR2TU)
 
+[Chess-Coding-Adventure Engine](https://github.com/SebLague/Chess-Coding-Adventure)
+
+[30 Weird Chess Algorithms: Elo World](https://www.youtube.com/watch?v=DpXy041BIlA)
+
 [The Fascinating Programming of a Chess Engine](https://www.youtube.com/watch?v=w4FFX_otR-4)
 
 [Minimax and Alpha-beta Pruning Explained](https://www.youtube.com/watch?v=l-hh51ncgDI)
