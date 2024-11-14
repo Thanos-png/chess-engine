@@ -127,6 +127,19 @@ class ChessBoard:
         """Increment the fullmove number after blacks's move."""
         self.fullmove_number += 1
 
+    def update_piece_position(self, start, end):
+        """Update the pieces dictionary after a move."""
+        piece = self.board[end[0]][end[1]]
+        color = piece.color
+        if start in self.pieces[color]:
+            del self.pieces[color][start]
+        self.pieces[color][end] = piece
+
+        # Remove captured piece from the opponent's dictionary, if any
+        opponent_color = 'black' if color == 'white' else 'white'
+        if end in self.pieces[opponent_color]:
+            del self.pieces[opponent_color][end]
+
     def setup_board(self):
         """Sets up the chess board with pieces in their initial positions."""
         for i in range(8):
@@ -141,19 +154,6 @@ class ChessBoard:
             self.pieces['white'][(i, 0)] = self.board[i][0]
             self.board[i][7] = piece('black')
             self.pieces['black'][(i, 7)] = self.board[i][7]
-
-    def update_piece_position(self, start, end):
-        """Update the pieces dictionary after a move."""
-        piece = self.board[end[0]][end[1]]
-        color = piece.color
-        if start in self.pieces[color]:
-            del self.pieces[color][start]
-        self.pieces[color][end] = piece
-
-        # Remove captured piece from the opponent's dictionary, if any
-        opponent_color = 'black' if color == 'white' else 'white'
-        if end in self.pieces[opponent_color]:
-            del self.pieces[opponent_color][end]
 
     def display(self):
         """Prints the chess board after every move."""
@@ -324,29 +324,6 @@ class ChessBoard:
                 return True
         return False
 
-    def promote_pawn(self, position, color):
-        """Promote a pawn that reaches the final rank to a new piece chosen by the player."""
-        x, y = position
-        while True:
-            choice = input("Promote pawn to (Q)ueen, (R)ook, (B)ishop, or (K)night: ").strip().upper()
-            if choice == 'Q':
-                self.board[x][y] = Queen(color)
-                break
-            elif choice == 'R':
-                self.board[x][y] = Rook(color)
-                break
-            elif choice == 'B':
-                self.board[x][y] = Bishop(color)
-                break
-            elif choice == 'K':
-                self.board[x][y] = Knight(color)
-                break
-            else:
-                print("Invalid choice. Please select Q, R, B, or K.")
-        
-        # Update pieces dictionary to reflect the promoted piece
-        self.pieces[color][position] = self.board[x][y]
-
     def move_piece(self, start, end, color):
         """Moves a piece from the start position to the end position if it is a valid move."""
         if (start == end):
@@ -380,6 +357,7 @@ class ChessBoard:
                             elif end[0] == 2:  # Queenside
                                 self.board[3][row] = self.board[0][row]
                                 self.board[0][row] = None
+
                         if (color == "white"):
                             self.white_king_position = (end_x, end_y)
                         else:
@@ -425,7 +403,7 @@ class ChessBoard:
                         # Reset halfmove clock because a pawn was moved
                         self.halfmove_clock = 0
                         if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
-                            self.promote_pawn((end_x, end_y), color)
+                            piece.promote_pawn((end_x, end_y), color, self)
 
                     # Update fullmove number
                     if color == 'black':
@@ -446,10 +424,21 @@ class ChessBoard:
 
         # Save the state of the board for check validation
         self.board[end_x][end_y] = piece
+        if isinstance(piece, King):
+            king_position = (end_x, end_y)
+        else:
+            king_position = self.white_king_position if color == 'white' else self.black_king_position
         self.board[start_x][start_y] = None
         
+        # Get the king instance for the current player
+        king = self.board[king_position[0]][king_position[1]]
+
+        # Ensure the king is correctly retrieved
+        if not isinstance(king, King):
+            raise ValueError(f"Expected a King at position {king_position} but found {type(king).__name__}")
+
         # Check if this move leaves the king in check
-        if self.is_in_check(color):
+        if king.is_in_check(color, self):
             # Revert move if it results in check
             self.board[start_x][start_y] = piece
             self.board[end_x][end_y] = target_piece
@@ -461,55 +450,28 @@ class ChessBoard:
         self.update_piece_position(start, end)
         return True
 
-    def is_in_check(self, color):
-        """Determine if the king of the given color is in check."""
-        king_position = self.white_king_position if color == 'white' else self.black_king_position
-        opponent_color = 'black' if color == 'white' else 'white'
-
-        # Check if any of the opponent's pieces can move to the king's position
-        for pos, piece in self.pieces[opponent_color].items():
-            if piece.is_valid_move(pos, king_position, self.board):
-                return True  # King is in check
-        return False
-
-    def get_blocking_squares(self, king_position, checking_position):
-        """Return a list of squares between the king and the checking piece that could potentially block the check."""
-        blocking_squares = []
-        king_x, king_y = king_position
-        check_x, check_y = checking_position
-        dx = (check_x - king_x) // max(1, abs(check_x - king_x))  # Direction along x-axis
-        dy = (check_y - king_y) // max(1, abs(check_y - king_y))  # Direction along y-axis
-
-        x, y = king_x + dx, king_y + dy
-        while 0 <= x <= 7 and 0 <= y <= 7 and (x, y) != (check_x, check_y) and (x, y) != king_position:
-            blocking_squares.append((x, y))
-            x += dx
-            y += dy
-        return blocking_squares
-
-    def get_checking_piece(self, king_position, opponent_color):
-        """Return the position and piece that is checking the king, if any."""
-        for pos, piece in self.pieces[opponent_color].items():
-            if not isinstance(piece, King) and piece.is_valid_move(pos, king_position, self.board):
-                return pos, piece
-        return None, None
-
     def has_legal_moves(self, color):
         """Determine if the player has any legal moves remaining.
         If the king is in check, check if there is a way to escape check (either by moving the king,
         blocking the check, or capturing the checking piece). If no escape is possible, declare checkmate.
         If the player has no legal moves but isn't in check, declare stalemate."""
+        # Get the king instance for the current player
         king_position = self.white_king_position if color == 'white' else self.black_king_position
+        king = self.board[king_position[0]][king_position[1]]
         opponent_color = 'black' if color == 'white' else 'white'
 
+        # Ensure the king is correctly retrieved
+        if not isinstance(king, King):
+            raise ValueError(f"Expected a King at position {king_position} but found {type(king).__name__}")
+
         # Check if the king is currently in check 
-        in_check = self.is_in_check(color)
+        in_check = king.is_in_check(color, self)
         protected_piece = False  # Flag to check if the piece that is checking the king is protected
 
         # Check if the king can escape check by moving to a different square
         if in_check:
             # Identify the piece that is checking the king
-            checking_position, checking_piece = self.get_checking_piece(king_position, opponent_color)
+            checking_position, checking_piece = king.get_checking_piece(king_position, opponent_color, self)
 
             # Generate all possible moves for the king (1 square in each direction)
             king_x, king_y = king_position
@@ -529,12 +491,8 @@ class ChessBoard:
                         else:
                             self.black_king_position = king_position
 
-                        # Check if the piece that the king is trying to capture is protected is protected
-                        if (not self.get_checking_piece(king_position, opponent_color) == (None, None)):
-                            protected_piece = True
-
                         # Check if this move takes the king out of check
-                        if not self.is_in_check(color):
+                        if not king.is_in_check(color, self):
                             # Undo the move and return True (legal escape found)
                             self.board[king_x][king_y] = self.board[new_x][new_y]
                             self.board[new_x][new_y] = piece
@@ -557,30 +515,32 @@ class ChessBoard:
                         else:
                             self.black_king_position = king_position
 
-            if (not protected_piece):
-                # Check if we can capture the checking piece
-                for pos, piece in self.pieces[color].items():
-                    if piece.is_valid_move(pos, checking_position, self.board):
-                        # Temporarily make the capture
-                        captured_piece = self.board[checking_position[0]][checking_position[1]]
-                        self.board[checking_position[0]][checking_position[1]] = piece
-                        self.board[pos[0]][pos[1]] = None
+            # Check if we can capture the checking piece
+            for pos, piece in self.pieces[color].items():
+                if piece.is_valid_move(pos, checking_position, self.board):
+                    # Temporarily make the capture
+                    captured_piece = self.board[checking_position[0]][checking_position[1]]
+                    self.board[checking_position[0]][checking_position[1]] = piece
+                    self.board[pos[0]][pos[1]] = None
+                    del self.pieces[opponent_color][checking_position]
 
-                        if not self.is_in_check(color):
-                            # Undo move and return True (legal move found)
-                            self.board[pos[0]][pos[1]] = piece
-                            self.board[checking_position[0]][checking_position[1]] = captured_piece
-
-                            print(f"{color.capitalize()} is in check.")
-                            return True
-
-                        # Undo the move
+                    if not king.is_in_check(color, self):
+                        # Undo move and return True (legal move found)
                         self.board[pos[0]][pos[1]] = piece
                         self.board[checking_position[0]][checking_position[1]] = captured_piece
+                        self.pieces[opponent_color][checking_position] = captured_piece
+
+                        print(f"{color.capitalize()} is in check.")
+                        return True
+
+                    # Undo the move
+                    self.board[pos[0]][pos[1]] = piece
+                    self.board[checking_position[0]][checking_position[1]] = captured_piece
+                    self.pieces[opponent_color][checking_position] = captured_piece
 
             # Check if we can block the check by moving a piece between the king and the checking piece
             if isinstance(checking_piece, (Rook, Bishop, Queen)):
-                blocking_squares = self.get_blocking_squares(king_position, checking_position)
+                blocking_squares = king.get_blocking_squares(king_position, checking_position)
                 for pos, piece in self.pieces[color].items():
                     for square in blocking_squares:
                         if not isinstance(piece, King) and piece.is_valid_move(pos, square, self.board):
@@ -589,7 +549,7 @@ class ChessBoard:
                             self.board[square[0]][square[1]] = piece
                             self.board[pos[0]][pos[1]] = None
 
-                            if not self.is_in_check(color):
+                            if not king.is_in_check(color, self):
                                 # Undo move and return True (legal move found)
                                 self.board[pos[0]][pos[1]] = piece
                                 self.board[square[0]][square[1]] = original_piece
@@ -614,18 +574,24 @@ class ChessBoard:
                         target_piece = self.board[dx][dy]
                         self.board[dx][dy] = piece
                         self.board[pos[0]][pos[1]] = None
+                        if target_piece:
+                            del self.pieces[opponent_color][(dx, dy)]
 
                         # Check if this move leaves the king in check
-                        if not self.is_in_check(color):
+                        if not king.is_in_check(color, self):
                             # Undo the move and return True (legal move found)
                             self.board[pos[0]][pos[1]] = piece
                             self.board[dx][dy] = target_piece
+                            if target_piece:
+                                self.pieces[opponent_color][(dx, dy)] = target_piece
 
                             return True
 
                         # Undo the move
                         self.board[pos[0]][pos[1]] = piece
                         self.board[dx][dy] = target_piece
+                        if target_piece:
+                            self.pieces[opponent_color][(dx, dy)] = target_piece
 
         # No legal moves were found and the king is not in check, so it's stalemate
         print("Stalemate! The game is a draw.")

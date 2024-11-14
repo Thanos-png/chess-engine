@@ -6,14 +6,16 @@ from utils import parse_position
 def main():
     board = ChessBoard()
     last_move = None  # To track last move for en passant
+    update_threefold_repetition = True
 
     while True:
         turn = board.turn
         board.display()
 
         # Check for threefold repetition
-        if board.checkThreefoldRepetition():
+        if update_threefold_repetition and board.checkThreefoldRepetition():
             break
+        update_threefold_repetition = False
 
         # Check for fifty-move rule
         if board.checkFiftyMoveRule():
@@ -48,6 +50,7 @@ def main():
                     turn = board.updateTurn()
                     last_move = (start, end, piece)
                     board.updateEnPassantSquare(turn, last_move)
+                    update_threefold_repetition = True
                 else:
                     print("""
 Invalid move, try again.""")
