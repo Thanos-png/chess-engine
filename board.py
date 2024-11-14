@@ -417,6 +417,7 @@ class ChessBoard:
 
     def move_piece_helper(self, start, end, board, color):
         """Check if a move is legal before playing it and update the board accordingly."""
+        opponent_color = 'black' if color == 'white' else 'white'
         start_x, start_y = start
         end_x, end_y = end
         piece = self.board[start_x][start_y]  # Piece at the start square
@@ -438,10 +439,14 @@ class ChessBoard:
             raise ValueError(f"Expected a King at position {king_position} but found {type(king).__name__}")
 
         # Check if this move leaves the king in check
+        if target_piece and target_piece.color != color:
+            del self.pieces[opponent_color][end]
         if king.is_in_check(color, self):
             # Revert move if it results in check
             self.board[start_x][start_y] = piece
             self.board[end_x][end_y] = target_piece
+            if target_piece and target_piece.color != color:
+                self.pieces[opponent_color][end] = target_piece
             return False
 
         # Reset halfmove clock because a piece is captured
