@@ -1,4 +1,3 @@
-# pieces/pawn.py
 
 from .piece import ChessPiece
 from utils import parse_position

@@ -25,6 +25,10 @@ def main():
         if not board.has_legal_moves(turn):
             break
 
+        if board.checkInsufficientMaterial():
+            print("Draw by Insufficient Material.")
+            break
+
         # Update turn
         print(f"{turn.capitalize()}'s move")
         board.setTurn(turn)

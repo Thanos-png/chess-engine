@@ -182,6 +182,67 @@ class ChessBoard:
             return True
         return False
 
+    def checkInsufficientMaterial(self):
+        """Check if the game is a draw due to insufficient material."""
+        bishopsWhite = []
+        bishopsBlack = []
+        bishopsCountWhite = 0
+        bishopsCountBlack = 0
+        knightsWhite = []
+        knightsBlack = []
+        knightsCountWhite = 0
+        knightsCountBlack = 0
+
+        # Iterate over the dictionary to count pieces
+        for position, piece in self.pieces[self.turn].items():
+            if isinstance(piece, Bishop):
+                if piece.color == 'white':
+                    bishopsWhite.append(position)  # Track White bishops for same color square check
+                    bishopsCountWhite += 1
+                else:
+                    bishopsBlack.append(position)  # Track Black bishops for same color square check
+                    bishopsCountBlack += 1
+            elif isinstance(piece, Knight):
+                if piece.color == 'white':
+                    knightsCountWhite += 1
+                else:
+                    knightsCountBlack += 1
+            elif not isinstance(piece, King):
+                # Any pawns, rooks, or queens means no insufficient material
+                return False
+
+        opponent_color = 'black' if self.turn == 'white' else 'white'
+        for position, piece in self.pieces[opponent_color].items():
+            if isinstance(piece, Bishop):
+                if piece.color == 'white':
+                    bishopsWhite.append(position)  # Track White bishops for same color square check
+                    bishopsCountWhite += 1
+                else:
+                    bishopsBlack.append(position)  # Track Black bishops for same color square check
+                    bishopsCountBlack += 1
+            elif isinstance(piece, Knight):
+                if piece.color == 'white':
+                    knightsCountWhite += 1
+                else:
+                    knightsCountBlack += 1
+            elif not isinstance(piece, King):
+                # Any pawns, rooks, or queens means no insufficient material
+                return False
+
+        # Basic insufficient material checks
+        canWhiteWin = not ((bishopsCountWhite <= 1 and knightsCountWhite == 0) or (knightsCountWhite <= 2 and not bishopsWhite) or not (bishopsWhite == 2 and knightsCountWhite == 0))
+        canBlackWin = not ((bishopsCountBlack <= 1 and knightsCountBlack == 0) or (knightsCountBlack <= 2 and not bishopsBlack) or not (bishopsBlack == 2 and knightsCountBlack == 0))
+        if (not canWhiteWin) and (not canBlackWin):
+            return True
+
+        if (bishopsWhite == 2 and knightsCountWhite == 0) and (bishopsBlack == 2 and knightsCountBlack == 0):
+            # Check if all bishops are on the same color squares
+            white_bishops_same_color = all((pos[0] + pos[1]) % 2 == (bishopsWhite[0][0] + bishopsWhite[0][1]) % 2 for pos in bishopsWhite)
+            black_bishops_same_color = all((pos[0] + pos[1]) % 2 == (bishopsBlack[0][0] + bishopsBlack[0][1]) % 2 for pos in bishopsBlack)
+            if white_bishops_same_color or black_bishops_same_color:
+                return True
+        return False
+
     def to_fen(self):
         """Convert the current board state to FEN notation."""
         fen = []
@@ -224,7 +285,6 @@ class ChessBoard:
 
         # Fullmove number
         fen += f'{self.fullmove_number}'
-
         return fen
 
     def from_fen(self, fen):
@@ -246,6 +306,7 @@ class ChessBoard:
                     self.board[x][7 - y] = piece
                     if piece:
                         self.pieces[piece.color][(x, 7 - y)] = piece  # Add the piece to the pieces dictionary
+                        print("Piece: ", piece, "Position: ", x, " ", 7 - y)
                         if isinstance(piece, King):
                             if piece.color == 'white':
                                 self.white_king_position = (x, 7 - y)
