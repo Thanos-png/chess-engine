@@ -1,5 +1,7 @@
 # Resources
 
+## Tutorials
+
 [Coding Adventure: Chess](https://www.youtube.com/watch?v=U4ogK0MIzqk)
 
 [Coding Adventure: Making a Better Chess Bot](https://www.youtube.com/watch?v=_vqlIPDR2TU)
@@ -14,6 +16,18 @@
 
 [Creating a Chess Engine Using Minimax and Alpha-beta Pruning](https://www.youtube.com/watch?v=-ivz8yJ4l4E)
 
-[Official Stockfish Source Code](https://github.com/official-stockfish/Stockfish/tree/master/src)
+## Code
+
+[Minmax and Alpha-Beta Pruning Implementation](https://github.com/AnthonyASanchez/python-chess-ai)
+
+[Stockfish Source Code](https://github.com/official-stockfish/Stockfish/tree/master/src)
+
+[Sunfish Source Code](https://github.com/thomasahle/sunfish)
+
+[PyChess](https://github.com/pychess/pychess)
+
+## Websites
 
 [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page)
+
+[Lichess](https://lichess.org/analysis)
