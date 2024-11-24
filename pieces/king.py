@@ -11,6 +11,9 @@ class King(ChessPiece):
         super().__init__(color)
         self.has_moved = False
 
+    def __name__(self):
+        return 'King'
+
     def __str__(self):
         return '♔' if self.color == 'white' else '♚'
 

@@ -2,11 +2,18 @@
 
 from board import ChessBoard
 from utils import parse_position
+from evaluate import ChessEngine
 
 def main():
     board = ChessBoard()
+    engine = ChessEngine()
     last_move = None  # To track last move for en passant
     update_threefold_repetition = True
+    color = None
+
+    # Player chooses color
+    while color not in ['white', 'black', 'w', 'b']:
+        color = input("Choose your color (white/black): ").strip().lower()
 
     while True:
         turn = board.turn
@@ -31,9 +38,13 @@ def main():
 
         # Update turn
         print(f"{turn.capitalize()}'s move")
-        board.setTurn(turn)
+        # board.setTurn(turn)
 
-        move = input("Enter your move: ").strip().lower()
+        # Get move
+        if turn != color:
+            move = engine.find_best_move(board, depth=3)
+        else:
+            move = input("Enter your move: ").strip().lower()
 
         if move == 'resign':
             print(f"{turn.capitalize()} resigns. {('Black' if turn == 'white' else 'White')} wins!")

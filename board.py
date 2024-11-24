@@ -27,11 +27,11 @@ class ChessBoard:
         return self.pieces
 
     # Setter for turn
-    def setTurn(self, turn):
-        if turn in ('white', 'black'):
-            self.turn = turn
-        else:
-            raise ValueError("Turn must be 'white' or 'black'.")
+    # def setTurn(self, turn):
+    #     if turn in ('white', 'black'):
+    #         self.turn = turn
+    #     else:
+    #         raise ValueError("Turn must be 'white' or 'black'.")
 
     # Setter for castling rights
     def setCastlingRights(self, castling_rights):
@@ -390,7 +390,7 @@ class ChessBoard:
                 return True
         return False
 
-    def move_piece(self, start, end, color):
+    def move_piece(self, start, end, color, flag=False):
         """Moves a piece from the start position to the end position if it is a valid move."""
         if (start == end):
             return False
@@ -412,8 +412,7 @@ class ChessBoard:
         if piece and piece.color == color:
             if isinstance(piece, King):
                 if piece.is_valid_move(start, end, self.board, self):
-                    if self.move_piece_helper(start, end, self.board, color):
-                        self.has_moved = True
+                    if self.move_piece_helper(start, end, self.board, color, flag):
                         # Castling move
                         if abs(start[0] - end[0]) == 2:
                             row = start[1]
@@ -424,64 +423,71 @@ class ChessBoard:
                                 self.board[3][row] = self.board[0][row]
                                 self.board[0][row] = None
 
-                        if (color == "white"):
-                            self.white_king_position = (end_x, end_y)
-                        else:
-                            self.black_king_position = (end_x, end_y)
+                        if not flag:
+                            self.has_moved = True
+                            if (color == "white"):
+                                self.white_king_position = (end_x, end_y)
+                            else:
+                                self.black_king_position = (end_x, end_y)
 
-                        # Update fullmove number
-                        if color == 'black':
-                            self.updateFullMoveNumber()
-                        self.updateHalfMoveClock()  # Increment halfmove clock
-                        self.updateCastlingRights(color, start, end)  # Update castling rights because the king moved
+                            # Update fullmove number
+                            if color == 'black':
+                                self.updateFullMoveNumber()
+                            self.updateHalfMoveClock()  # Increment halfmove clock
+                            self.updateCastlingRights(color, start, end)  # Update castling rights because the king moved
                         return True
                 return False
             # Check for en passant capture
             en_passant_target_pawn = self.board[end_x][start_y]  # Pawn that can be captured en passant if any
             if self.en_passant_square and isinstance(piece, Pawn) and piece.is_valid_move(start, end, self.board, self):
-                if self.move_piece_helper(start, end, self.board, color):
-                    # Remove the captured pawn from the pieces dictionary
-                    opponent_color = 'black' if color == 'white' else 'white'
-                    del self.getPieces()[opponent_color][(end_x, start_y)]
+                if self.move_piece_helper(start, end, self.board, color, flag):
+                    if flag:
+                        # Restore the enemy pawn that was captured en passant
+                        self.board[end_x][start_y] = en_passant_target_pawn
+                    else:
+                        # Remove the captured pawn from the pieces dictionary
+                        opponent_color = 'black' if color == 'white' else 'white'
+                        del self.getPieces()[opponent_color][(end_x, start_y)]
 
-                    # Update fullmove number
-                    if color == 'black':
-                        self.updateFullMoveNumber()
+                        # Update fullmove number
+                        if color == 'black':
+                            self.updateFullMoveNumber()
 
-                    # Reset halfmove clock because a pawn was moved
-                    self.halfmove_clock = 0
+                        # Reset halfmove clock because a pawn was moved
+                        self.halfmove_clock = 0
 
-                    # Clear board history after an en passant capture
-                    self.board_history.clear()
+                        # Clear board history after an en passant capture
+                        self.board_history.clear()
                     return True
                 # Restore the enemy pawn that was captured en passant
                 self.board[end_x][start_y] = en_passant_target_pawn
                 return False
             if piece.is_valid_move(start, end, self.board):
-                if self.move_piece_helper(start, end, self.board, color):
-                    self.updateHalfMoveClock()  # Increment halfmove clock
+                if self.move_piece_helper(start, end, self.board, color, flag):
+                    if not flag:
+                        self.updateHalfMoveClock()  # Increment halfmove clock
 
-                    # Check for pawn promotion
-                    if isinstance(piece, Pawn):
-                        # Clear board history after a pawn move
-                        self.board_history.clear()
+                        # Check for pawn promotion
+                        if isinstance(piece, Pawn):
+                            # Clear board history after a pawn move
+                            self.board_history.clear()
 
-                        # Reset halfmove clock because a pawn was moved
-                        self.halfmove_clock = 0
-                        if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
-                            piece.promote_pawn((end_x, end_y), color, self)
+                            # Reset halfmove clock because a pawn was moved
+                            self.halfmove_clock = 0
+                            if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
+                                piece.promote_pawn((end_x, end_y), color, self)
 
-                    # Update fullmove number
-                    if color == 'black':
-                        self.updateFullMoveNumber()
+                        # Update fullmove number
+                        if color == 'black':
+                            self.updateFullMoveNumber()
 
-                    # Update castling rights because a rook moved or was captured
-                    if isinstance(piece, Rook) or end == (0, 0) or end == (7, 0) or end == (0, 7) or end == (7, 7):
-                        self.updateCastlingRights(color, start, end)
+                        # Update castling rights because a rook moved or was captured
+                        if isinstance(piece, Rook) or end == (0, 0) or end == (7, 0) or end == (0, 7) or end == (7, 7):
+                            self.updateCastlingRights(color, start, end)
                     return True
         return False
 
-    def move_piece_helper(self, start, end, board, color):
+    def move_piece_helper(self, start, end, board, color, flag):
         """Check if a move is legal before playing it and update the board accordingly."""
         opponent_color = 'black' if color == 'white' else 'white'
         start_x, start_y = start
@@ -505,7 +511,7 @@ class ChessBoard:
             raise ValueError(f"Expected a King at position {king_position} but found {type(king).__name__}")
 
         # Check if this move leaves the king in check
-        if target_piece and target_piece.color != color:
+        if target_piece and target_piece.color != color and not flag:
             del self.pieces[opponent_color][end]
         if king.is_in_check(color, self):
             # Revert move if it results in check
@@ -515,10 +521,14 @@ class ChessBoard:
                 self.pieces[opponent_color][end] = target_piece
             return False
 
-        # Reset halfmove clock because a piece is captured
-        if target_piece and target_piece.color != color:
-            self.halfmove_clock = 0
-        self.update_piece_position(start, end)
+        if flag:
+            self.board[start_x][start_y] = piece
+            self.board[end_x][end_y] = target_piece
+        else:
+            # Reset halfmove clock because a piece is captured
+            if target_piece and target_piece.color != color:
+                self.halfmove_clock = 0
+            self.update_piece_position(start, end)
         return True
 
     def has_legal_moves(self, color, minmaxFlag=False):
@@ -673,39 +683,55 @@ class ChessBoard:
         return False
 
     def generate_legal_moves(self, color):
-        """
-        Generate all legal moves for the given color.
-
-        Args:
-            color (str): 'white' or 'black'.
-
-        Returns:
-            list: A list of legal moves in the format {'start': (x1, y1), 'end': (x2, y2)}.
-        """
+        """Generate all legal moves for the given color and returns them 
+        as a list in the format {'start': (x1, y1), 'end': (x2, y2)}."""
         legal_moves = []
 
         # Determine the active pieces for the color
-        active_pieces = self.white_pieces if color == 'white' else self.black_pieces
+        active_pieces = self.pieces['white'] if color == 'white' else self.pieces['black']
 
         # Iterate over each piece type and their positions
-        for piece_type, positions in active_pieces.items():
-            for start in positions:
-                piece = self.board[start[0]][start[1]]
-                if not piece:
-                    continue
+        for pos, piece in active_pieces.items():
+            if not piece:
+                continue
 
-                # Generate all possible moves for the piece
-                for x in range(8):
-                    for y in range(8):
-                        end = (x, y)
-                        # Check if the move is valid for the piece
-                        if piece.is_valid_move(start, end, self.board, last_move=None, board_instance=self):
-                            # Make the move temporarily to check for legality
-                            if self.move_piece(start, end, color):
-                                legal_moves.append({'start': start, 'end': end})
+            # Generate all possible moves for the piece
+            for x in range(8):
+                for y in range(8):
+                    end = (x, y)
+                    # Make the move temporarily to check for legality
+                    if self.move_piece(pos, end, color, True):
+                        legal_moves.append({'start': pos, 'end': end})
         return legal_moves
 
-    def undo_move(self):
+    def undo_move(self, start, end, color, target_piece):
+        """Undo a move that was made."""
+        start_x, start_y = start
+        end_x, end_y = end
+        piece = self.board[end_x][end_y]
+        self.board[start_x][start_y] = piece
+
+        # Check if the was a piece at the end square
+        if target_piece:
+            self.board[end_x][end_y] = target_piece
+
+        # Check for castling move
+        if isinstance(piece, King) and abs(start_x - end_x) == 2 and start_y == end_y:
+            # Kingside castling
+            if end_x == 6:
+                self.board[7][start_y] = self.board[5][start_y]
+                self.board[5][start_y] = None
+            # Queenside castling
+            elif end_x == 2:
+                self.board[0][start_y] = self.board[3][start_y]
+                self.board[3][start_y] = None
+
+        # Check for en passant move
+        if isinstance(piece, Pawn) and start_x != end_x and not target_piece:
+            opponent_color = 'black' if color == 'white' else 'white'
+            self.board[end_x][start_y] = Pawn(opponent_color)
+
+    def undo_moves(self):
         """This method restores the board to its previous states using the FEN stack."""
         if not self.fen_stack:
             raise ValueError("No moves to undo.")

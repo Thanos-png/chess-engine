@@ -10,6 +10,9 @@ class Pawn(ChessPiece):
     def __init__(self, color):
         super().__init__(color)
 
+    def __name__(self):
+        return 'Pawn'
+
     def __str__(self):
         return '♙' if self.color == 'white' else '♟'
 
