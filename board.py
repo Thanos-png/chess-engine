@@ -20,6 +20,7 @@ class ChessBoard:
         self.halfmove_clock = 0  # Number of halfmoves since the last capture or pawn advance
         self.fullmove_number = 1  #How many turns have been played
         self.board_history = {}  # Dictionary to store FEN and their counts for threefold repetition draw
+        self.fen_stack = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]  # Stack to store FEN strings for undoing moves
 
     # Getter for pieces
     def getPieces(self):
@@ -139,6 +140,11 @@ class ChessBoard:
         opponent_color = 'black' if color == 'white' else 'white'
         if end in self.pieces[opponent_color]:
             del self.pieces[opponent_color][end]
+
+    def updateFENstack(self):
+        """Save the current state to the FEN stack."""
+        current_fen = self.to_fen()
+        self.fen_stack.append(current_fen)
 
     def setup_board(self):
         """Sets up the chess board with pieces in their initial positions."""
@@ -306,7 +312,6 @@ class ChessBoard:
                     self.board[x][7 - y] = piece
                     if piece:
                         self.pieces[piece.color][(x, 7 - y)] = piece  # Add the piece to the pieces dictionary
-                        print("Piece: ", piece, "Position: ", x, " ", 7 - y)
                         if isinstance(piece, King):
                             if piece.color == 'white':
                                 self.white_king_position = (x, 7 - y)
@@ -437,7 +442,7 @@ class ChessBoard:
                 if self.move_piece_helper(start, end, self.board, color):
                     # Remove the captured pawn from the pieces dictionary
                     opponent_color = 'black' if color == 'white' else 'white'
-                    del board_instance.getPieces()[opponent_color][(end_x, start_y)]
+                    del self.getPieces()[opponent_color][(end_x, start_y)]
 
                     # Update fullmove number
                     if color == 'black':
@@ -516,7 +521,7 @@ class ChessBoard:
         self.update_piece_position(start, end)
         return True
 
-    def has_legal_moves(self, color):
+    def has_legal_moves(self, color, minmaxFlag=False):
         """Determine if the player has any legal moves remaining.
         If the king is in check, check if there is a way to escape check (either by moving the king,
         blocking the check, or capturing the checking piece). If no escape is possible, declare checkmate.
@@ -569,7 +574,8 @@ class ChessBoard:
                             else:
                                 self.black_king_position = king_position
 
-                            print(f"{color.capitalize()} is in check.")
+                            if not minmaxFlag:
+                                print(f"{color.capitalize()} is in check.")
                             return True
 
                         # Undo the move
@@ -596,7 +602,8 @@ class ChessBoard:
                         self.board[checking_position[0]][checking_position[1]] = captured_piece
                         self.pieces[opponent_color][checking_position] = captured_piece
 
-                        print(f"{color.capitalize()} is in check.")
+                        if not minmaxFlag:
+                            print(f"{color.capitalize()} is in check.")
                         return True
 
                     # Undo the move
@@ -620,7 +627,8 @@ class ChessBoard:
                                 self.board[pos[0]][pos[1]] = piece
                                 self.board[square[0]][square[1]] = original_piece
 
-                                print(f"{color.capitalize()} is in check.")
+                                if not minmaxFlag:
+                                    print(f"{color.capitalize()} is in check.")
                                 return True
 
                             # Undo the move
@@ -628,7 +636,8 @@ class ChessBoard:
                             self.board[square[0]][square[1]] = original_piece
 
             # No legal moves were found and the king is in check, so it's checkmate
-            print(f"Checkmate! {('Black' if color == 'white' else 'White')} wins!")
+            if not minmaxFlag:
+                print(f"Checkmate! {('Black' if color == 'white' else 'White')} wins!")
             return False
 
         # If not in check, check for any legal moves (stalemate)
@@ -640,7 +649,7 @@ class ChessBoard:
                         target_piece = self.board[dx][dy]
                         self.board[dx][dy] = piece
                         self.board[pos[0]][pos[1]] = None
-                        if target_piece:
+                        if target_piece and target_piece.color == opponent_color and not isinstance(target_piece, King):
                             del self.pieces[opponent_color][(dx, dy)]
 
                         # Check if this move leaves the king in check
@@ -648,17 +657,60 @@ class ChessBoard:
                             # Undo the move and return True (legal move found)
                             self.board[pos[0]][pos[1]] = piece
                             self.board[dx][dy] = target_piece
-                            if target_piece:
+                            if target_piece and target_piece.color == opponent_color and not isinstance(target_piece, King):
                                 self.pieces[opponent_color][(dx, dy)] = target_piece
-
                             return True
 
                         # Undo the move
                         self.board[pos[0]][pos[1]] = piece
                         self.board[dx][dy] = target_piece
-                        if target_piece:
+                        if target_piece and target_piece.color == opponent_color and not isinstance(target_piece, King):
                             self.pieces[opponent_color][(dx, dy)] = target_piece
 
         # No legal moves were found and the king is not in check, so it's stalemate
-        print("Stalemate! The game is a draw.")
+        if not minmaxFlag:
+            print("Stalemate! The game is a draw.")
         return False
+
+    def generate_legal_moves(self, color):
+        """
+        Generate all legal moves for the given color.
+
+        Args:
+            color (str): 'white' or 'black'.
+
+        Returns:
+            list: A list of legal moves in the format {'start': (x1, y1), 'end': (x2, y2)}.
+        """
+        legal_moves = []
+
+        # Determine the active pieces for the color
+        active_pieces = self.white_pieces if color == 'white' else self.black_pieces
+
+        # Iterate over each piece type and their positions
+        for piece_type, positions in active_pieces.items():
+            for start in positions:
+                piece = self.board[start[0]][start[1]]
+                if not piece:
+                    continue
+
+                # Generate all possible moves for the piece
+                for x in range(8):
+                    for y in range(8):
+                        end = (x, y)
+                        # Check if the move is valid for the piece
+                        if piece.is_valid_move(start, end, self.board, last_move=None, board_instance=self):
+                            # Make the move temporarily to check for legality
+                            if self.move_piece(start, end, color):
+                                legal_moves.append({'start': start, 'end': end})
+        return legal_moves
+
+    def undo_move(self):
+        """This method restores the board to its previous states using the FEN stack."""
+        if not self.fen_stack:
+            raise ValueError("No moves to undo.")
+
+        # Pop the last FEN string and restore the board state
+        last_fen = self.fen_stack.pop()
+        self.from_fen(last_fen)
+ 

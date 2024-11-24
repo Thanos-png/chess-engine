@@ -54,6 +54,7 @@ def main():
                     turn = board.updateTurn()
                     last_move = (start, end, piece)
                     board.updateEnPassantSquare(turn, last_move)
+                    board.updateFENstack()
                     update_threefold_repetition = True
                 else:
                     print("""
