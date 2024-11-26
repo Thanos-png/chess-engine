@@ -1,4 +1,5 @@
 
+from pieces.pawn import Pawn
 from pieces.king import King
 from math import inf
 from utils import to_square_notation
@@ -14,39 +15,39 @@ class ChessEngine:
             'bishop': 3.5,
             'rook': 5,
             'queen': 9,
-            'king': inf  # King is invaluable for evaluation
+            'king': 1000  # King is invaluable for evaluation
         }
 
         self.position_values = {
             'pawn': [
                 [0, 0, 0, 0, 0, 0, 0, 0],
-                [0.5, 1, 1, -2, -2, 1, 1, 0.5],
-                [0.5, -0.5, -1, 0, 0, -1, -0.5, 0.5],
-                [0, 0, 0, 2, 2, 0, 0, 0],
-                [0.5, 0.5, 1, 2.5, 2.5, 1, 0.5, 0.5],
+                [4, 4, 4, 4, 4, 4, 4, 4],
                 [1, 1, 2, 3, 3, 2, 1, 1],
-                [5, 5, 5, 5, 5, 5, 5, 5],
+                [0.5, 0.5, 1, 2.5, 2.5, 1, 0.5, 0.5],
+                [0, 0, 0, 2, 2, 0, 0, 0],
+                [0.5, -0.5, -1, -0.5, -0.5, -1, -0.5, 0.5],
+                [0.5, 1, 1, -2, -2, 1, 1, 0.5],
                 [0, 0, 0, 0, 0, 0, 0, 0]
             ],
             'knight': [
                 [-5, -4, -3, -3, -3, -3, -4, -5],
                 [-4, -2, 0, 0.5, 0.5, 0, -2, -4],
-                [-3, 0.5, 1, 1.5, 1.5, 1, 0.5, -3],
-                [-3, 0, 1.5, 2, 2, 1.5, 0, -3],
+                [-3, 0, 1, 1.5, 1.5, 1, 0, -3],
+                [-3, 0.5, 1.5, 2, 2, 1.5, 0.5, -3],
                 [-3, 0.5, 1.5, 2, 2, 1.5, 0.5, -3],
                 [-3, 0, 1, 1.5, 1.5, 1, 0, -3],
-                [-4, -2, 0, 0, 0, 0, -2, -4],
+                [-4, -2, 0, 0.5, 0.5, 0, -2, -4],
                 [-5, -4, -3, -3, -3, -3, -4, -5]
             ],
             'bishop': [
                 [-2, -1, -1, -1, -1, -1, -1, -2],
-                [-1, 0, 0, 0, 0, 0, 0, -1],
-                [-1, 0, 0.5, 1, 1, 0.5, 0, -1],
-                [-1, 0.5, 0.5, 1, 1, 0.5, 0.5, -1],
-                [-1, 0, 1, 1, 1, 1, 0, -1],
-                [-1, 1, 1, 1, 1, 1, 1, -1],
-                [-1, 0.5, 0, 0, 0, 0, 0.5, -1],
-                [-2, -1, -1, -1, -1, -1, -1, -2]
+                [-1.5, 0, 0, 0, 0, 0, 0, -1.5],
+                [-1.5, 0, 0.5, 1, 1, 0.5, 0, -1.5],
+                [-1.5, 1, 0.5, 1, 1, 0.5, 1, -1.5],
+                [-1.5, 0, 1, 1, 1, 1, 0, -1.5],
+                [-1.5, 1, 1, 1, 1, 1, 1, -1.5],
+                [-1, 1, 0, 0, 0, 0, 1, -1],
+                [-1, -1, -1, -1, -1, -1, -1, -1]
             ],
             'rook': [
                 [0, 0, 0, 0, 0, 0, 0, 0],
@@ -59,14 +60,14 @@ class ChessEngine:
                 [0, 0, 0, 0.5, 0.5, 0, 0, 0]
             ],
             'queen': [
-                [-2, -1, -1, -0.5, -0.5, -1, -1, -2],
+                [-2, -1, -0.5, -0.5, -0.5, -0.5, -1, -2],
                 [-1, 0, 0, 0, 0, 0, 0, -1],
                 [-1, 0, 0.5, 0.5, 0.5, 0.5, 0, -1],
-                [-0.5, 0, 0.5, 0.5, 0.5, 0.5, 0, -0.5],
+                [0, 0, 0.5, 0.5, 0.5, 0.5, 0, -0.5],
                 [0, 0, 0.5, 0.5, 0.5, 0.5, 0, -0.5],
                 [-1, 0.5, 0.5, 0.5, 0.5, 0.5, 0, -1],
                 [-1, 0, 0.5, 0, 0, 0, 0, -1],
-                [-2, -1, -1, -0.5, -0.5, -1, -1, -2]
+                [-2, -1, -0.5, -0.5, -0.5, -0.5, -1, -2]
             ],
             'king': [
                 [-3, -4, -4, -5, -5, -4, -4, -3],
@@ -75,8 +76,8 @@ class ChessEngine:
                 [-3, -4, -4, -5, -5, -4, -4, -3],
                 [-2, -3, -3, -4, -4, -3, -3, -2],
                 [-1, -2, -2, -2, -2, -2, -2, -1],
-                [2, 2, 0, 0, 0, 0, 2, 2],
-                [2, 3, 1, 0, 0, 1, 3, 2]
+                [1.5, 1.5, 0, 0, 0, 0, 1.5, 1.5],
+                [2, 3, 1.5, 0, 0, 1, 3, 2]
             ]
         }
 
@@ -86,14 +87,12 @@ class ChessEngine:
         white_score = 0
         black_score = 0
 
-        # Use the piece dictionaries for efficiency
-        for pos, piece_type in board.pieces['white'].items():
-            if not isinstance(piece_type, King):
-                white_score += self.piece_values[type(piece_type).__name__.lower()]
+        # Iterate over all pieces
+        for pos, piece in board.pieces['white'].items():
+            white_score += self.evaluate_piece(piece, pos, 'white', board)
 
-        for pos, piece_type in board.pieces['black'].items():
-            if not isinstance(piece_type, King):
-                black_score += self.piece_values[type(piece_type).__name__.lower()]
+        for pos, piece in board.pieces['black'].items():
+            black_score += self.evaluate_piece(piece, pos, 'black', board)
 
         # Positive score favors white, negative score favors black
         return white_score - black_score
@@ -101,6 +100,7 @@ class ChessEngine:
     def evaluate_piece(self, piece, position, color, board):
         """Evaluate the value of a single piece, including material, position, and special rules."""
         piece_type = type(piece).__name__.lower()
+        # Add material value
         value = self.piece_values[piece_type]
 
         # Add positional value
@@ -119,12 +119,14 @@ class ChessEngine:
     def evaluate_position(self, piece_type, position, color):
         """Evaluate the positional value with bonuses/penalties based on piece-tables."""
         x, y = position
-        # Encourage central control for all pieces
-        center_bonus = 0
-        if 2 <= x <= 5 and 2 <= y <= 5:
-            center_bonus = 0.5  # Pieces in the center are generally stronger
+        if color == 'black':
+            # Flip the board for black pieces
+            x, y = 7 - x, 7 - y
 
-        return center_bonus
+        # Get the positional value from the piece's table
+        position_value = self.position_values[piece_type][y][x]
+
+        return position_value
 
     def evaluate_pawn_structure(self, position, color, board):
         """Evaluate the pawn structure for penalties like doubled, isolated."""
@@ -135,7 +137,7 @@ class ChessEngine:
         # Check for doubled pawns
         for i in range(1, 4):
             if (x, y + i) in board.pieces[color] and isinstance(board.pieces[color][(x, y + i)], Pawn):
-                penalty -= 0.5  # Doubled pawns are a weakness
+                penalty -= 1  # Doubled pawns are a weakness
 
         # Check for isolated pawns
         for pos, piece_type in board.pieces[color].items():
@@ -143,20 +145,14 @@ class ChessEngine:
                 if (pos[1] - 1, pos[0]) in board.pieces[color] or (pos[1] + 1, pos[0]) in board.pieces[color]:
                     isolated = False
         if isolated:
-            penalty -= 0.2  # Isolated pawns have no support
+            penalty -= 0.5  # Isolated pawns have no support
 
         return penalty
 
     def evaluate_king_safety(self, position, color):
-        """Evaluate the king's safety. Penalize exposed kings and reward castling."""
+        """Evaluate the king's safety by making sure that he cover."""
         x, y = position
         penalty = 0
-
-        # Penalize if the king is not castled and exposed
-        if y > 1 and y < 6:
-            penalty -= 2  # King is exposed in the center rows
-        if x > 2 abd x < 5:
-            penalty -= 0.5  # King is exposed in the center columns
 
         return penalty
 

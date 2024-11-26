@@ -399,8 +399,10 @@ class ChessBoard:
                 return True
         return False
 
-    def move_piece(self, start, end, color, flag=False):
-        """Moves a piece from the start position to the end position if it is a valid move."""
+    def move_piece(self, start, end, color, flag=False, engineflag=False):
+        """Moves a piece from the start position to the end position if it is a valid move.
+        flag: is used to check if the move is valid before playing it (for the generate_legal_moves()).
+        engineflag: is used to check if the move is made by the engine (in case pawn promotion needed)."""
         if (start == end):
             return False
 
@@ -484,7 +486,11 @@ class ChessBoard:
                             # Reset halfmove clock because a pawn was moved
                             self.halfmove_clock = 0
                             if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
-                                piece.promote_pawn((end_x, end_y), color, self)
+                                if engineflag:
+                                    self.board[end_x][end_y] = Queen(color)
+                                    self.pieces[color][position] = self.board[end_x][end_y]
+                                else:
+                                    piece.promote_pawn((end_x, end_y), color, self)
 
                         # Update fullmove number
                         if color == 'black':
