@@ -1,5 +1,7 @@
 
+from pieces.king import King
 from math import inf
+from utils import to_square_notation
 
 class ChessEngine:
     """Evaluate a chess board using a heuristic evaluation and perform Minimax with Alpha-Beta Pruning."""
@@ -23,40 +25,44 @@ class ChessEngine:
 
         # Use the piece dictionaries for efficiency
         for pos, piece_type in board.pieces['white'].items():
-            white_score += len(pos) * self.piece_values[type(piece_type).__name__.lower()]
+            if not isinstance(piece_type, King):
+                white_score += len(pos) * self.piece_values[type(piece_type).__name__.lower()]
 
         for pos, piece_type in board.pieces['black'].items():
-            black_score += len(pos) * self.piece_values[type(piece_type).__name__.lower()]
+            if not isinstance(piece_type, King):
+                black_score += len(pos) * self.piece_values[type(piece_type).__name__.lower()]
 
         # Positive score favors white, negative score favors black
         return white_score - black_score
 
-    def minimax(self, board, depth, alpha, beta, maximizing_player):
+    def minimax(self, board, depth, alpha, beta, maximizing_player, original_board):
         """Perform the Minimax algorithm with alpha-beta pruning and return the 
         evaluation score of the best move for the current player."""
         if depth == 0 or board.has_legal_moves(board.turn, True) is False:
+            # Restore the board state
+            board.board = original_board.board
+            board.pieces = original_board.pieces
+            board.white_king_position = original_board.white_king_position
+            board.black_king_position = original_board.black_king_position
+            board.turn = original_board.turn
+            board.castling_rights = original_board.castling_rights
+            board.en_passant_square = original_board.en_passant_square
+            board.halfmove_clock = original_board.halfmove_clock
+            board.fullmove_number = original_board.fullmove_number
+            board.board_history = original_board.board_history
+            board.fen_stack = original_board.fen_stack
+
             return self.evaluate_board(board)
 
         if maximizing_player == 'white':
             max_eval = -inf
             for move in board.generate_legal_moves('white'):
                 # Save the board state before making the move
-                boardprev = board.board
-                piecesprev = board.pieces
-                white_king_positionprev = board.white_king_position
-                black_king_positionprev = board.black_king_position
-                turnprev = board.turn
-                castling_rightsprev = board.castling_rights
-                en_passant_squareprev = board.en_passant_square
-                halfmove_clockprev = board.halfmove_clock
-                fullmove_numberprev = board.fullmove_number
-                board_historyprev = board.board_history
-                fen_stackprev = board.fen_stack
+                original_board = board.clone()
 
                 # Make the move on the board
                 piece = board.board[move['start'][0]][move['start'][1]]  # Save the moving piece
                 target_piece = board.board[move['end'][0]][move['end'][1]]  # Save the target piece (if any)
-                print("Piece: ", piece, " Start: ", move['start'], " End: ", move['end'], " Color: White", " Target: ", target_piece)
                 board.move_piece(move['start'], move['end'], 'white')
 
                 # Update the turn, en passant square, FEN stack and evaluate the state
@@ -64,23 +70,20 @@ class ChessEngine:
                 last_move = (move['start'], move['end'], piece)
                 board.updateEnPassantSquare(board.turn, last_move)
                 board.updateFENstack()
-                evaluation = self.minimax(board, depth - 1, alpha, beta, 'black')
+                evaluation = self.minimax(board, depth - 1, alpha, beta, 'black', original_board)
 
                 # Restore the board state
-                board.board = boardprev
-                board.pieces = piecesprev
-                board.white_king_position = white_king_positionprev
-                board.black_king_position = black_king_positionprev
-                board.turn = turnprev
-                board.castling_rights = castling_rightsprev
-                board.en_passant_square = en_passant_squareprev
-                board.halfmove_clock = halfmove_clockprev
-                board.fullmove_number = fullmove_numberprev
-                board.board_history = board_historyprev
-                board.fen_stack = fen_stackprev
-
-                # Undo the move
-                board.undo_move(move['start'], move['end'], 'white', target_piece)
+                board.board = original_board.board
+                board.pieces = original_board.pieces
+                board.white_king_position = original_board.white_king_position
+                board.black_king_position = original_board.black_king_position
+                board.turn = original_board.turn
+                board.castling_rights = original_board.castling_rights
+                board.en_passant_square = original_board.en_passant_square
+                board.halfmove_clock = original_board.halfmove_clock
+                board.fullmove_number = original_board.fullmove_number
+                board.board_history = original_board.board_history
+                board.fen_stack = original_board.fen_stack
 
                 max_eval = max(max_eval, evaluation)
                 alpha = max(alpha, evaluation)
@@ -91,22 +94,11 @@ class ChessEngine:
             min_eval = inf
             for move in board.generate_legal_moves('black'):
                 # Save the board state before making the move
-                boardprev = board.board
-                piecesprev = board.pieces
-                white_king_positionprev = board.white_king_position
-                black_king_positionprev = board.black_king_position
-                turnprev = board.turn
-                castling_rightsprev = board.castling_rights
-                en_passant_squareprev = board.en_passant_square
-                halfmove_clockprev = board.halfmove_clock
-                fullmove_numberprev = board.fullmove_number
-                board_historyprev = board.board_history
-                fen_stackprev = board.fen_stack
+                original_board = board.clone()
 
                 # Make the move on the board
                 piece = board.board[move['start'][0]][move['start'][1]]  # Save the moving piece
                 target_piece = board.board[move['end'][0]][move['end'][1]]  # Save the target piece (if any)
-                print("Piece: ", piece, " Start: ", move['start'], " End: ", move['end'], " Color: Black", " Target: ", target_piece)
                 board.move_piece(move['start'], move['end'], 'black')
 
                 # Update the turn, en passant square, FEN stack and evaluate the state
@@ -114,23 +106,20 @@ class ChessEngine:
                 last_move = (move['start'], move['end'], piece)
                 board.updateEnPassantSquare(board.turn, last_move)
                 board.updateFENstack()
-                evaluation = self.minimax(board, depth - 1, alpha, beta, 'white')
+                evaluation = self.minimax(board, depth - 1, alpha, beta, 'white', original_board)
 
                 # Restore the board state
-                board.board = boardprev
-                board.pieces = piecesprev
-                board.white_king_position = white_king_positionprev
-                board.black_king_position = black_king_positionprev
-                board.turn = turnprev
-                board.castling_rights = castling_rightsprev
-                board.en_passant_square = en_passant_squareprev
-                board.halfmove_clock = halfmove_clockprev
-                board.fullmove_number = fullmove_numberprev
-                board.board_history = board_historyprev
-                board.fen_stack = fen_stackprev
-
-                # Undo the move
-                board.undo_move(move['start'], move['end'], 'black', target_piece)
+                board.board = original_board.board
+                board.pieces = original_board.pieces
+                board.white_king_position = original_board.white_king_position
+                board.black_king_position = original_board.black_king_position
+                board.turn = original_board.turn
+                board.castling_rights = original_board.castling_rights
+                board.en_passant_square = original_board.en_passant_square
+                board.halfmove_clock = original_board.halfmove_clock
+                board.fullmove_number = original_board.fullmove_number
+                board.board_history = original_board.board_history
+                board.fen_stack = original_board.fen_stack
 
                 min_eval = min(min_eval, evaluation)
                 beta = min(beta, evaluation)
@@ -146,17 +135,7 @@ class ChessEngine:
 
         for move in board.generate_legal_moves(board.turn):
             # Save the board state before making the move
-            boardprev = board.board
-            piecesprev = board.pieces
-            white_king_positionprev = board.white_king_position
-            black_king_positionprev = board.black_king_position
-            turnprev = board.turn
-            castling_rightsprev = board.castling_rights
-            en_passant_squareprev = board.en_passant_square
-            halfmove_clockprev = board.halfmove_clock
-            fullmove_numberprev = board.fullmove_number
-            board_historyprev = board.board_history
-            fen_stackprev = board.fen_stack
+            original_board = board.clone()
 
             # Make the move on the board
             piece = board.board[move['start'][0]][move['start'][1]]  # Save the moving piece
@@ -168,38 +147,40 @@ class ChessEngine:
             last_move = (move['start'], move['end'], piece)
             board.updateEnPassantSquare(board.turn, last_move)
             board.updateFENstack()
-            evaluation = self.minimax(board, depth - 1, -inf, inf, board.turn == 'black')
+            evaluation = self.minimax(board, depth - 1, -inf, inf, board.turn, original_board)
 
             # Restore the board state
-            board.board = boardprev
-            board.pieces = piecesprev
-            board.white_king_position = white_king_positionprev
-            board.black_king_position = black_king_positionprev
-            board.turn = turnprev
-            board.castling_rights = castling_rightsprev
-            board.en_passant_square = en_passant_squareprev
-            board.halfmove_clock = halfmove_clockprev
-            board.fullmove_number = fullmove_numberprev
-            board.board_history = board_historyprev
-            board.fen_stack = fen_stackprev
+            board.board = original_board.board
+            board.pieces = original_board.pieces
+            board.white_king_position = original_board.white_king_position
+            board.black_king_position = original_board.black_king_position
+            board.turn = original_board.turn
+            board.castling_rights = original_board.castling_rights
+            board.en_passant_square = original_board.en_passant_square
+            board.halfmove_clock = original_board.halfmove_clock
+            board.fullmove_number = original_board.fullmove_number
+            board.board_history = original_board.board_history
+            board.fen_stack = original_board.fen_stack
 
             # Undo the move
-            board.undo_move(move['start'], move['end'], board.turn, target_piece)
+            # board.undo_move(move['start'], move['end'], board.turn, target_piece)
 
             # Update the best move based on evaluation
             if board.turn == 'white':
+                print("White Evaluation: ", evaluation)
                 if evaluation > best_value:
                     best_value = evaluation
                     best_move = move
             else:
+                print("Black Evaluation: ", evaluation)
                 if evaluation < best_value:
                     best_value = evaluation
                     best_move = move
 
         # Convert the best move to the "e2 e4" format
         if best_move:
-            start_square = self.to_square_notation(best_move['start'])
-            end_square = self.to_square_notation(best_move['end'])
+            start_square = to_square_notation(best_move['start'])
+            end_square = to_square_notation(best_move['end'])
             return f"{start_square} {end_square}"
 
         # No valid moves available

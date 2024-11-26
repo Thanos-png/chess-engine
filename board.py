@@ -22,16 +22,25 @@ class ChessBoard:
         self.board_history = {}  # Dictionary to store FEN and their counts for threefold repetition draw
         self.fen_stack = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]  # Stack to store FEN strings for undoing moves
 
+    def clone(self):
+        """Create a deep copy of the chess board."""
+        new_board = ChessBoard()
+        new_board.board = [row[:] for row in self.board]
+        new_board.pieces = {color: pieces.copy() for color, pieces in self.pieces.items()}
+        new_board.white_king_position = self.white_king_position
+        new_board.black_king_position = self.black_king_position
+        new_board.turn = self.turn
+        new_board.castling_rights = self.castling_rights.copy()
+        new_board.en_passant_square = self.en_passant_square
+        new_board.halfmove_clock = self.halfmove_clock
+        new_board.fullmove_number = self.fullmove_number
+        new_board.board_history = self.board_history.copy()
+        new_board.fen_stack = self.fen_stack[:]
+        return new_board
+
     # Getter for pieces
     def getPieces(self):
         return self.pieces
-
-    # Setter for turn
-    # def setTurn(self, turn):
-    #     if turn in ('white', 'black'):
-    #         self.turn = turn
-    #     else:
-    #         raise ValueError("Turn must be 'white' or 'black'.")
 
     # Setter for castling rights
     def setCastlingRights(self, castling_rights):
@@ -438,8 +447,8 @@ class ChessBoard:
                         return True
                 return False
             # Check for en passant capture
-            en_passant_target_pawn = self.board[end_x][start_y]  # Pawn that can be captured en passant if any
-            if self.en_passant_square and isinstance(piece, Pawn) and piece.is_valid_move(start, end, self.board, self):
+            en_passant_target_pawn = self.board[end_x][start_y]  # Pawn that can be captured en passant (if any)
+            if self.en_passant_square and isinstance(piece, Pawn) and self.en_passant_square == to_square_notation(end) and piece.is_valid_move(start, end, self.board, self):
                 if self.move_piece_helper(start, end, self.board, color, flag):
                     if flag:
                         # Restore the enemy pawn that was captured en passant
@@ -709,6 +718,7 @@ class ChessBoard:
         start_x, start_y = start
         end_x, end_y = end
         piece = self.board[end_x][end_y]
+        self.board[end_x][end_y] = None
         self.board[start_x][start_y] = piece
 
         # Check if the was a piece at the end square
@@ -732,7 +742,7 @@ class ChessBoard:
             self.board[end_x][start_y] = Pawn(opponent_color)
 
     def undo_moves(self):
-        """This method restores the board to its previous states using the FEN stack."""
+        """This method restores the board to its previous states using the FEN stack. It's slower than undo_move."""
         if not self.fen_stack:
             raise ValueError("No moves to undo.")
 
