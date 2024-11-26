@@ -38,10 +38,10 @@ def main():
 
         # Update turn
         print(f"{turn.capitalize()}'s move")
-        # board.setTurn(turn)
 
         # Get move
         if turn != color:
+            print("Engine is thinking...")
             move = engine.find_best_move(board, depth=3)
         else:
             move = input("Enter your move: ").strip().lower()
