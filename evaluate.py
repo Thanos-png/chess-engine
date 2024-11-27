@@ -8,6 +8,8 @@ class ChessEngine:
     """Evaluate a chess board using a heuristic evaluation and perform Minimax with Alpha-Beta Pruning."""
 
     def __init__(self):
+        self.numberOfFinishNodes = 0
+
         # Assign static values to pieces for the heuristic
         self.piece_values = {
             'pawn': 1,
@@ -15,9 +17,10 @@ class ChessEngine:
             'bishop': 3.5,
             'rook': 5,
             'queen': 9,
-            'king': 1000  # King is invaluable for evaluation
+            'king': 10000  # King is invaluable for evaluation
         }
 
+        # Piece-tables 
         self.position_values = {
             'pawn': [
                 [0, 0, 0, 0, 0, 0, 0, 0],
@@ -76,8 +79,8 @@ class ChessEngine:
                 [-3, -4, -4, -5, -5, -4, -4, -3],
                 [-2, -3, -3, -4, -4, -3, -3, -2],
                 [-1, -2, -2, -2, -2, -2, -2, -1],
-                [1.5, 1.5, 0, 0, 0, 0, 1.5, 1.5],
-                [2, 3, 1.5, 0, 0, 1, 3, 2]
+                [1.5, 1.5, -0.3, -0.3, -0.3, -0.3, 1.5, 1.5],
+                [2, 3, 1.5, -0.3, 0, 1, 3, 2]
             ]
         }
 
@@ -94,6 +97,7 @@ class ChessEngine:
         for pos, piece in board.pieces['black'].items():
             black_score += self.evaluate_piece(piece, pos, 'black', board)
 
+        self.numberOfFinishNodes += 1
         # Positive score favors white, negative score favors black
         return white_score - black_score
 
@@ -104,7 +108,7 @@ class ChessEngine:
         value = self.piece_values[piece_type]
 
         # Add positional value
-        value += self.evaluate_position(piece_type, position, color)
+        value += 0.4 * self.evaluate_position(piece_type, position, color)
 
         # Special considerations for pawns
         if piece_type == 'pawn':
@@ -112,9 +116,9 @@ class ChessEngine:
 
         # Add penalties for king safety
         if piece_type == 'king':
-            value += self.evaluate_king_safety(position, color)
+            value += 0.001 * self.evaluate_king_safety(position, color)
 
-        return value
+        return round(value, 4)
 
     def evaluate_position(self, piece_type, position, color):
         """Evaluate the positional value with bonuses/penalties based on piece-tables."""
@@ -156,24 +160,30 @@ class ChessEngine:
 
         return penalty
 
+    def restoreBoardState(self, board, original_board):
+        """Restores every value of the chess board."""
+        board.board = original_board.board
+        board.pieces = original_board.pieces
+        board.white_king_position = original_board.white_king_position
+        board.black_king_position = original_board.black_king_position
+        board.turn = original_board.turn
+        board.castling_rights = original_board.castling_rights
+        board.en_passant_square = original_board.en_passant_square
+        board.halfmove_clock = original_board.halfmove_clock
+        board.fullmove_number = original_board.fullmove_number
+        board.board_history = original_board.board_history
+        board.fen_stack = original_board.fen_stack
+
     def minimax(self, board, depth, alpha, beta, maximizing_player, original_board):
         """Perform the Minimax algorithm with alpha-beta pruning and return the 
         evaluation score of the best move for the current player."""
         if depth == 0 or board.has_legal_moves(board.turn, True) is False:
-            # Restore the board state
-            board.board = original_board.board
-            board.pieces = original_board.pieces
-            board.white_king_position = original_board.white_king_position
-            board.black_king_position = original_board.black_king_position
-            board.turn = original_board.turn
-            board.castling_rights = original_board.castling_rights
-            board.en_passant_square = original_board.en_passant_square
-            board.halfmove_clock = original_board.halfmove_clock
-            board.fullmove_number = original_board.fullmove_number
-            board.board_history = original_board.board_history
-            board.fen_stack = original_board.fen_stack
+            evaluation = self.evaluate_board(board)
 
-            return self.evaluate_board(board)
+            # Restore the board state
+            self.restoreBoardState(board, original_board)
+
+            return evaluation
 
         if maximizing_player == 'white':
             max_eval = -inf
@@ -194,17 +204,7 @@ class ChessEngine:
                 evaluation = self.minimax(board, depth - 1, alpha, beta, 'black', original_board)
 
                 # Restore the board state
-                board.board = original_board.board
-                board.pieces = original_board.pieces
-                board.white_king_position = original_board.white_king_position
-                board.black_king_position = original_board.black_king_position
-                board.turn = original_board.turn
-                board.castling_rights = original_board.castling_rights
-                board.en_passant_square = original_board.en_passant_square
-                board.halfmove_clock = original_board.halfmove_clock
-                board.fullmove_number = original_board.fullmove_number
-                board.board_history = original_board.board_history
-                board.fen_stack = original_board.fen_stack
+                self.restoreBoardState(board, original_board)
 
                 max_eval = max(max_eval, evaluation)
                 alpha = max(alpha, evaluation)
@@ -230,17 +230,7 @@ class ChessEngine:
                 evaluation = self.minimax(board, depth - 1, alpha, beta, 'white', original_board)
 
                 # Restore the board state
-                board.board = original_board.board
-                board.pieces = original_board.pieces
-                board.white_king_position = original_board.white_king_position
-                board.black_king_position = original_board.black_king_position
-                board.turn = original_board.turn
-                board.castling_rights = original_board.castling_rights
-                board.en_passant_square = original_board.en_passant_square
-                board.halfmove_clock = original_board.halfmove_clock
-                board.fullmove_number = original_board.fullmove_number
-                board.board_history = original_board.board_history
-                board.fen_stack = original_board.fen_stack
+                self.restoreBoardState(board, original_board)
 
                 min_eval = min(min_eval, evaluation)
                 beta = min(beta, evaluation)
@@ -269,19 +259,10 @@ class ChessEngine:
             board.updateEnPassantSquare(board.turn, last_move)
             board.updateFENstack()
             evaluation = self.minimax(board, depth - 1, -inf, inf, board.turn, original_board)
+            print(evaluation)
 
             # Restore the board state
-            board.board = original_board.board
-            board.pieces = original_board.pieces
-            board.white_king_position = original_board.white_king_position
-            board.black_king_position = original_board.black_king_position
-            board.turn = original_board.turn
-            board.castling_rights = original_board.castling_rights
-            board.en_passant_square = original_board.en_passant_square
-            board.halfmove_clock = original_board.halfmove_clock
-            board.fullmove_number = original_board.fullmove_number
-            board.board_history = original_board.board_history
-            board.fen_stack = original_board.fen_stack
+            self.restoreBoardState(board, original_board)
 
             # Update the best move based on evaluation
             if board.turn == 'white':
@@ -295,6 +276,8 @@ class ChessEngine:
 
         # Convert the best move to the "e2 e4" format
         if best_move:
+            print("Nodes: ", self.numberOfFinishNodes)
+
             start_square = to_square_notation(best_move['start'])
             end_square = to_square_notation(best_move['end'])
             return f"{start_square} {end_square}"

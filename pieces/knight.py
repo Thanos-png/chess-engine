@@ -16,3 +16,21 @@ class Knight(ChessPiece):
         dx = abs(start[0] - end[0])
         dy = abs(start[1] - end[1])
         return (dx, dy) in [(1, 2), (2, 1)]
+
+    def legal_moves(self, position, color):
+        """Generate all the possible legal moves for a knight in a given position."""
+        x, y = position
+        moves = []
+
+        # All possible L-shaped moves
+        potential_moves = [
+            (x + 2, y + 1), (x + 2, y - 1),
+            (x - 2, y + 1), (x - 2, y - 1),
+            (x + 1, y + 2), (x + 1, y - 2),
+            (x - 1, y + 2), (x - 1, y - 2),
+        ]
+
+        # Filter moves within the board
+        moves = [(new_x, new_y) for new_x, new_y in potential_moves if 0 <= new_x < 8 and 0 <= new_y < 8]
+
+        return moves

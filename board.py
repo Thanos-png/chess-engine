@@ -710,13 +710,11 @@ class ChessBoard:
             if not piece:
                 continue
 
-            # Generate all possible moves for the piece
-            for x in range(8):
-                for y in range(8):
-                    end = (x, y)
-                    # Make the move temporarily to check for legality
-                    if self.move_piece(pos, end, color, True):
-                        legal_moves.append({'start': pos, 'end': end})
+            # Check all the possible moves for the each piece type
+            for move in piece.legal_moves(pos, color):
+                # Make the move temporarily to check for legality
+                if self.move_piece(pos, move, color, True):
+                    legal_moves.append({'start': pos, 'end': move})
         return legal_moves
 
     def undo_move(self, start, end, color, target_piece):

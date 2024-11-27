@@ -33,3 +33,21 @@ class Bishop(ChessPiece):
                 return False  # Found an obstacle
             x, y = x + dx, y + dy  # Move to the next square
         return True
+
+    def legal_moves(self, position, color):
+        """Generate all the possible legal moves for a bishop in a given position."""
+        x, y = position
+        moves = []
+
+        # Diagonal moves
+        for offset in range(1, 8):
+            if x + offset < 8 and y + offset < 8:
+                moves.append((x + offset, y + offset))  # Bottom-right diagonal
+            if x - offset >= 0 and y - offset >= 0:
+                moves.append((x - offset, y - offset))  # Top-left diagonal
+            if x + offset < 8 and y - offset >= 0:
+                moves.append((x + offset, y - offset))  # Top-right diagonal
+            if x - offset >= 0 and y + offset < 8:
+                moves.append((x - offset, y + offset))  # Bottom-left diagonal
+
+        return moves

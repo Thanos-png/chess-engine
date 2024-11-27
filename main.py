@@ -3,6 +3,7 @@
 from board import ChessBoard
 from utils import parse_position
 from evaluate import ChessEngine
+import time
 
 def main():
     board = ChessBoard()
@@ -41,8 +42,18 @@ def main():
 
         # Get move
         if turn != color:
+            # Start the timer
+            start_time = time.time()
+
             print("Engine is thinking...")
-            move = engine.find_best_move(board, depth=3)
+            move = engine.find_best_move(board, depth=4)
+
+            # End the timer
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+
+            # Print the time taken
+            print(f"Engine took {elapsed_time:.2f} seconds to decide on the move.")
         else:
             move = input("Enter your move: ").strip().lower()
 

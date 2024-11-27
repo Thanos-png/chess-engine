@@ -81,3 +81,21 @@ class King(ChessPiece):
             if not isinstance(piece, King) and piece.is_valid_move(pos, king_position, chessboard_instance.board):
                 return pos, piece
         return None, None
+
+    def legal_moves(self, position, color):
+        """Generate all the possible legal moves for a king in a given position."""
+        x, y = position
+        moves = []
+    
+        # All possible king moves
+        potential_moves = [
+            (x + 1, y), (x - 1, y),
+            (x, y + 1), (x, y - 1),
+            (x + 1, y + 1), (x + 1, y - 1),
+            (x - 1, y + 1), (x - 1, y - 1),
+        ]
+    
+        # Filter moves within the board
+        moves = [(new_x, new_y) for new_x, new_y in potential_moves if 0 <= new_x < 8 and 0 <= new_y < 8]
+    
+        return moves

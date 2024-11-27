@@ -26,7 +26,7 @@ class Pawn(ChessPiece):
         if start_x == end_x and start_y + direction == end_y and board[end_x][end_y] is None:
             return True
         # Initial double move forward
-        if start_x == end_x and start_y + 2 * direction == end_y and ((self.color == 'white' and start_y == 1) or (self.color == 'black' and start_y == 6)) and board[end_x][end_y] is None:
+        if start_x == end_x and start_y + 2 * direction == end_y and ((self.color == 'white' and start_y == 1) or (self.color == 'black' and start_y == 6)) and board[end_x][end_y] is None and board[end_x][end_y - direction] is None:
             return True
         # Capture one square diagonally
         if abs(start_x - end_x) == 1 and start_y + direction == end_y:
@@ -64,3 +64,17 @@ class Pawn(ChessPiece):
         
         # Update pieces dictionary to reflect the promoted piece
         chessboard_instance.pieces[color][position] = chessboard_instance.board[x][y]
+
+    def legal_moves(self, position, color):
+        """Generate all the posible legal moves for a pawn in a given position."""
+        direction = 1 if self.color == 'white' else -1
+        x, y = position
+
+        moves = [(x , y + direction), (x, y + direction * 2)]
+        # En passant capture moves
+        if x - 1 >= 0:
+            moves.append((x - 1, y + direction))
+        if x + 1 <= 7:
+            moves.append((x + 1, y + direction))
+
+        return moves

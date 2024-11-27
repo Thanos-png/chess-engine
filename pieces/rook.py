@@ -36,3 +36,18 @@ class Rook(ChessPiece):
                 return False  # Found an obstacle
             x, y = x + dx, y + dy  # Move to the next square
         return True
+
+    def legal_moves(self, position, color):
+        """Generate all the posible legal moves for a rook in a given position."""
+        x, y = position
+        moves = []
+
+        # Horizontal moves
+        for new_x in range(8):
+            moves.append((new_x, y))
+
+        # Vertical moves
+        for new_y in range(8):
+            moves.append((x, new_y))
+
+        return moves
