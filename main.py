@@ -46,7 +46,7 @@ def main():
             start_time = time.time()
 
             print("Engine is thinking...")
-            move = engine.find_best_move(board, depth=4)
+            move = engine.find_best_move(board, depth=3)
 
             # End the timer
             end_time = time.time()
