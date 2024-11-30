@@ -1,4 +1,6 @@
 
+from typing import Dict, Tuple
+from pieces.piece import ChessPiece
 from pieces.pawn import Pawn
 from pieces.rook import Rook
 from pieces.knight import Knight
@@ -7,8 +9,9 @@ from pieces.queen import Queen
 from pieces.king import King
 from utils import to_square_notation
 
+
 class ChessBoard:
-    def __init__(self):
+    def __init__(self) -> None:
         self.board = [[None] * 8 for _ in range(8)]
         self.pieces = {'white': {}, 'black': {}}  # Track all pieces by color and position
         self.setup_board()
@@ -22,7 +25,7 @@ class ChessBoard:
         self.board_history = {}  # Dictionary to store FEN and their counts for threefold repetition draw
         self.fen_stack = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]  # Stack to store FEN strings for undoing moves
 
-    def clone(self):
+    def clone(self) -> ChessBoard:
         """Create a deep copy of the chess board."""
         new_board = ChessBoard()
         new_board.board = [row[:] for row in self.board]
@@ -39,46 +42,47 @@ class ChessBoard:
         return new_board
 
     # Getter for pieces
-    def getPieces(self):
+    def getPieces(self) -> Dict[str, Dict[Tuple[int, int], ChessPiece]]:
         return self.pieces
 
     # Setter for castling rights
-    def setCastlingRights(self, castling_rights):
+    def setCastlingRights(self, castling_rights: Dict[str, bool]) -> None:
         valid_keys = {'K', 'Q', 'k', 'q'}
         if all(key in valid_keys for key in castling_rights.keys()):
+            key: str
             self.castling_rights = castling_rights
         else:
             raise ValueError("Invalid castling rights keys.")
 
     # Setter for en passant square
-    def setEnPassantSquare(self, square):
+    def setEnPassantSquare(self, square: str) -> None:
         if square is None or isinstance(square, str):
             self.en_passant_square = square
         else:
             raise ValueError("En passant square must be None or a valid square string.")
 
     # Setter for halfmove clock
-    def setHalfMoveClock(self, count):
+    def setHalfMoveClock(self, count: int) -> None:
         if isinstance(count, int) and count >= 0:
             self.halfmove_clock = count
         else:
             raise ValueError("Halfmove clock must be a non-negative integer.")
 
     # Setter for fullmove number
-    def setFullMoveNumber(self, number):
+    def setFullMoveNumber(self, number: int) -> None:
         if isinstance(number, int) and number > 0:
             self.fullmove_number = number
         else:
             raise ValueError("Fullmove number must be a positive integer.")
 
-    def updateTurn(self):
+    def updateTurn(self) -> str:
         """Update the turn after a move is made."""
         self.turn = 'black' if self.turn == 'white' else 'white'
         return self.turn
 
-    def updateCastlingRights(self, color, start, end):
+    def updateCastlingRights(self, color: str, start: Tuple[int, int], end: Tuple[int, int]) -> None:
         """Update castling rights if the king is moved or a rook is moved or captured."""
-        prev_castling_rights = self.castling_rights.copy()
+        prev_castling_rights: Dict[str, bool] = self.castling_rights.copy()
         if color == 'white':
             # Check if the white king or a white rook is moved
             if start == (4, 0):
@@ -114,33 +118,33 @@ class ChessBoard:
         if prev_castling_rights != self.castling_rights:
             self.board_history.clear()
 
-    def updateEnPassantSquare(self, color, last_move):
+    def updateEnPassantSquare(self, color: str, last_move: Tuple[Tuple[int, int], Tuple[int, int], ChessPiece]) -> None:
         """Update en_passant_square based on the last move."""
         if last_move and isinstance(last_move[2], Pawn):
             # Check if the last move was a double pawn push
             if abs(last_move[0][1] - last_move[1][1]) == 2:
                 # Check if the pawn that moved two squares forward has any neighboring (left and right) pawns
                 for dx in [-1, 1]:
-                    neighbor_x = last_move[1][0] + dx
+                    neighbor_x: int = last_move[1][0] + dx
                     if 0 <= neighbor_x < 8:
-                        neighbor_piece = self.board[neighbor_x][last_move[1][1]]
+                        neighbor_piece: ChessPiece = self.board[neighbor_x][last_move[1][1]]
                         if isinstance(neighbor_piece, Pawn) and neighbor_piece.color == color:
                             self.setEnPassantSquare(to_square_notation((last_move[1][0], (last_move[0][1] + last_move[1][1]) // 2)))
                             return
         self.setEnPassantSquare(None)
 
-    def updateHalfMoveClock(self):
+    def updateHalfMoveClock(self) -> None:
         """Increment the halfmove clock if a non-capturing or non-pawn move is made."""
         self.halfmove_clock += 1
 
-    def updateFullMoveNumber(self):
+    def updateFullMoveNumber(self) -> None:
         """Increment the fullmove number after blacks's move."""
         self.fullmove_number += 1
 
-    def update_piece_position(self, start, end):
+    def update_piece_position(self, start: Tuple[int, int], end: Tuple[int, int]) -> None:
         """Update the pieces dictionary after a move."""
-        piece = self.board[end[0]][end[1]]
-        color = piece.color
+        piece: ChessPiece = self.board[end[0]][end[1]]
+        color: str = piece.color
         if start in self.pieces[color]:
             del self.pieces[color][start]
         self.pieces[color][end] = piece
@@ -150,12 +154,12 @@ class ChessBoard:
         if end in self.pieces[opponent_color]:
             del self.pieces[opponent_color][end]
 
-    def updateFENstack(self):
+    def updateFENstack(self) -> None:
         """Save the current state to the FEN stack."""
-        current_fen = self.to_fen()
+        current_fen: str = self.to_fen()
         self.fen_stack.append(current_fen)
 
-    def setup_board(self):
+    def setup_board(self) -> None:
         """Sets up the chess board with pieces in their initial positions."""
         for i in range(8):
             self.board[i][1] = Pawn('white')
@@ -170,34 +174,34 @@ class ChessBoard:
             self.board[i][7] = piece('black')
             self.pieces['black'][(i, 7)] = self.board[i][7]
 
-    def display(self):
+    def display(self) -> None:
         """Prints the chess board after every move."""
         print("\n  a b c d e f g h")
         for y in range(7, -1, -1):
             print(f"{y+1} ", end="")
             for x in range(8):
-                piece = self.board[x][y]
+                piece: ChessPiece = self.board[x][y]
                 print(str(piece) if piece else '.', end=" ")
             print(f"{y+1}")
         print("  a b c d e f g h\n")
 
-    def checkThreefoldRepetition(self):
+    def checkThreefoldRepetition(self) -> bool:
         """Check if the current board state has occurred three times."""
-        current_state = self.to_fen().rsplit(' ', 2)[0]  # Update the current state of the board without halfmove_clock and fullmove_number
+        current_state: str = self.to_fen().rsplit(' ', 2)[0]  # Update the current state of the board without halfmove_clock and fullmove_number
         self.board_history[current_state] = self.board_history.get(current_state, 0) + 1  # Update board history
         if self.board_history.get(current_state, 0) >= 3:
             print("Draw by threefold repetition.")
             return True
         return False
 
-    def checkFiftyMoveRule(self):
+    def checkFiftyMoveRule(self): bool:
         """Check if the game has reached a draw by the fifty-move rule."""
         if self.halfmove_clock >= 50:
             print("Draw by fifty-move rule.")
             return True
         return False
 
-    def checkInsufficientMaterial(self):
+    def checkInsufficientMaterial(self) -> None:
         """Check if the game is a draw due to insufficient material."""
         bishopsWhite = []
         bishopsBlack = []
@@ -210,6 +214,8 @@ class ChessBoard:
 
         # Iterate over the dictionary to count pieces
         for position, piece in self.pieces[self.turn].items():
+            position: Tuple[int, int]
+            piece: ChessPiece
             if isinstance(piece, Bishop):
                 if piece.color == 'white':
                     bishopsWhite.append(position)  # Track White bishops for same color square check
@@ -228,6 +234,8 @@ class ChessBoard:
 
         opponent_color = 'black' if self.turn == 'white' else 'white'
         for position, piece in self.pieces[opponent_color].items():
+            position: Tuple[int, int]
+            piece: ChessPiece
             if isinstance(piece, Bishop):
                 if piece.color == 'white':
                     bishopsWhite.append(position)  # Track White bishops for same color square check
@@ -245,15 +253,16 @@ class ChessBoard:
                 return False
 
         # Basic insufficient material checks
-        canWhiteWin = not ((bishopsCountWhite <= 1 and knightsCountWhite == 0) or (knightsCountWhite <= 2 and not bishopsWhite) or not (bishopsWhite == 2 and knightsCountWhite == 0))
-        canBlackWin = not ((bishopsCountBlack <= 1 and knightsCountBlack == 0) or (knightsCountBlack <= 2 and not bishopsBlack) or not (bishopsBlack == 2 and knightsCountBlack == 0))
+        canWhiteWin: bool = not ((bishopsCountWhite <= 1 and knightsCountWhite == 0) or (knightsCountWhite <= 2 and not bishopsWhite) or not (bishopsWhite == 2 and knightsCountWhite == 0))
+        canBlackWin: bool = not ((bishopsCountBlack <= 1 and knightsCountBlack == 0) or (knightsCountBlack <= 2 and not bishopsBlack) or not (bishopsBlack == 2 and knightsCountBlack == 0))
         if (not canWhiteWin) and (not canBlackWin):
             return True
 
         if (bishopsWhite == 2 and knightsCountWhite == 0) and (bishopsBlack == 2 and knightsCountBlack == 0):
             # Check if all bishops are on the same color squares
-            white_bishops_same_color = all((pos[0] + pos[1]) % 2 == (bishopsWhite[0][0] + bishopsWhite[0][1]) % 2 for pos in bishopsWhite)
-            black_bishops_same_color = all((pos[0] + pos[1]) % 2 == (bishopsBlack[0][0] + bishopsBlack[0][1]) % 2 for pos in bishopsBlack)
+            white_bishops_same_color: bool = all((pos[0] + pos[1]) % 2 == (bishopsWhite[0][0] + bishopsWhite[0][1]) % 2 for pos in bishopsWhite)
+            black_bishops_same_color: bool = all((pos[0] + pos[1]) % 2 == (bishopsBlack[0][0] + bishopsBlack[0][1]) % 2 for pos in bishopsBlack)
+            pos: Tuple[int, int]
             if white_bishops_same_color or black_bishops_same_color:
                 return True
         return False
