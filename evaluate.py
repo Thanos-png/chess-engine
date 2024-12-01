@@ -1,6 +1,6 @@
 
 from chess import polyglot
-from typing import Dict, Tuple
+from typing import Optional, Dict, Tuple
 from pieces.piece import ChessPiece
 from pieces.pawn import Pawn
 from pieces.king import King

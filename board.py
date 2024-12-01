@@ -1,5 +1,5 @@
 
-from typing import Dict, Tuple
+from typing import Optional, Dict, Tuple
 from pieces.piece import ChessPiece
 from pieces.pawn import Pawn
 from pieces.rook import Rook
@@ -25,7 +25,7 @@ class ChessBoard:
         self.board_history = {}  # Dictionary to store FEN and their counts for threefold repetition draw
         self.fen_stack = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]  # Stack to store FEN strings for undoing moves
 
-    def clone(self) -> ChessBoard:
+    def clone(self) -> 'ChessBoard':
         """Create a deep copy of the chess board."""
         new_board = ChessBoard()
         new_board.board = [row[:] for row in self.board]
@@ -194,7 +194,7 @@ class ChessBoard:
             return True
         return False
 
-    def checkFiftyMoveRule(self): bool:
+    def checkFiftyMoveRule(self) -> bool:
         """Check if the game has reached a draw by the fifty-move rule."""
         if self.halfmove_clock >= 50:
             print("Draw by fifty-move rule.")
@@ -267,7 +267,7 @@ class ChessBoard:
                 return True
         return False
 
-    def to_fen(self):
+    def to_fen(self) -> str:
         """Convert the current board state to FEN notation."""
         fen = []
 
@@ -311,7 +311,7 @@ class ChessBoard:
         fen += f'{self.fullmove_number}'
         return fen
 
-    def from_fen(self, fen):
+    def from_fen(self, fen: str) -> None:
         """Initialize the board from a FEN notation string."""
         parts = fen.split()
 
@@ -326,7 +326,7 @@ class ChessBoard:
                 if char.isdigit():
                     x += int(char)
                 else:
-                    piece = self.create_piece_from_fen(char)
+                    piece: ChessPiece = self.create_piece_from_fen(char)
                     self.board[x][7 - y] = piece
                     if piece:
                         self.pieces[piece.color][(x, 7 - y)] = piece  # Add the piece to the pieces dictionary
@@ -358,7 +358,7 @@ class ChessBoard:
         # Fullmove number
         self.fullmove_number = int(parts[5])
 
-    def create_piece_for_fen(self, piece):
+    def create_piece_for_fen(self, piece: ChessPiece) -> str:
         """Create the piece character representation for a FEN."""
         char = None
         if isinstance(piece, Pawn):
@@ -378,7 +378,7 @@ class ChessBoard:
             char = char.upper()
         return char
 
-    def create_piece_from_fen(self, char):
+    def create_piece_from_fen(self, char: str) -> ChessPiece:
         """Create a piece from a FEN character."""
         color = 'white' if char.isupper() else 'black'
         char = char.lower()
@@ -397,18 +397,20 @@ class ChessBoard:
             return King(color)
         return None
 
-    def is_square_under_attack(self, square, color):
+    def is_square_under_attack(self, square: Tuple[int, int], color: str) -> bool:
         """Check if a square is under attack by any piece of the opponent's color."""
         opponent_color = 'black' if color == 'white' else 'white'
         x, y = square
 
         # Iterate over all opponent's pieces to check if any can move to the target square
         for pos, piece in self.pieces[opponent_color].items():
+            pos: Tuple[int, int]
+            piece: ChessPiece
             if piece.is_valid_move(pos, (x, y), self.board):
                 return True
         return False
 
-    def move_piece(self, start, end, color, flag=False, engineflag=False):
+    def move_piece(self, start: Tuple[int, int], end: Tuple[int, int], color: str, flag=False, engineflag=False) -> bool:
         """Moves a piece from the start position to the end position if it is a valid move.
         flag: is used to check if the move is valid before playing it (for the generate_legal_moves()).
         engineflag: is used to check if the move is made by the engine (in case pawn promotion needed)."""
@@ -421,8 +423,8 @@ class ChessBoard:
         if start_x < 0 or start_x > 7 or start_y < 0 or start_y > 7 or end_x < 0 or end_x > 7 or end_y < 0 or end_y > 7:
             return False
 
-        piece = self.board[start_x][start_y]  # Piece at the start square
-        target_piece = self.board[end_x][end_y]  # Piece at the target square(if any)
+        piece: ChessPiece = self.board[start_x][start_y]  # Piece at the start square
+        target_piece: ChessPiece = self.board[end_x][end_y]  # Piece at the target square(if any)
 
         # Check if the destination square contains a piece of the same color
         if target_piece and target_piece.color == color:
@@ -458,7 +460,7 @@ class ChessBoard:
                         return True
                 return False
             # Check for en passant capture
-            en_passant_target_pawn = self.board[end_x][start_y]  # Pawn that can be captured en passant (if any)
+            en_passant_target_pawn: ChessPiece = self.board[end_x][start_y]  # Pawn that can be captured en passant (if any)
             if self.en_passant_square and isinstance(piece, Pawn) and self.en_passant_square == to_square_notation(end) and piece.is_valid_move(start, end, self.board, self):
                 if self.move_piece_helper(start, end, self.board, color, flag):
                     if flag:
@@ -511,24 +513,24 @@ class ChessBoard:
                     return True
         return False
 
-    def move_piece_helper(self, start, end, board, color, flag):
+    def move_piece_helper(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]], color: str, flag: bool) -> bool:
         """Check if a move is legal before playing it and update the board accordingly."""
         opponent_color = 'black' if color == 'white' else 'white'
         start_x, start_y = start
         end_x, end_y = end
-        piece = self.board[start_x][start_y]  # Piece at the start square
-        target_piece = self.board[end_x][end_y]  # Piece at the target square(if any)
+        piece: ChessPiece = self.board[start_x][start_y]  # Piece at the start square
+        target_piece: ChessPiece = self.board[end_x][end_y]  # Piece at the target square(if any)
 
         # Save the state of the board for check validation
         self.board[end_x][end_y] = piece
         if isinstance(piece, King):
-            king_position = (end_x, end_y)
+            king_position: Tuple[int, int] = (end_x, end_y)
         else:
-            king_position = self.white_king_position if color == 'white' else self.black_king_position
+            king_position: Tuple[int, int] = self.white_king_position if color == 'white' else self.black_king_position
         self.board[start_x][start_y] = None
         
         # Get the king instance for the current player
-        king = self.board[king_position[0]][king_position[1]]
+        king: King = self.board[king_position[0]][king_position[1]]
 
         # Ensure the king is correctly retrieved
         if not isinstance(king, King):
@@ -555,14 +557,14 @@ class ChessBoard:
             self.update_piece_position(start, end)
         return True
 
-    def has_legal_moves(self, color, minmaxFlag=False):
+    def has_legal_moves(self, color: str, minmaxFlag=False) -> bool:
         """Determine if the player has any legal moves remaining.
         If the king is in check, check if there is a way to escape check (either by moving the king,
         blocking the check, or capturing the checking piece). If no escape is possible, declare checkmate.
         If the player has no legal moves but isn't in check, declare stalemate."""
         # Get the king instance for the current player
-        king_position = self.white_king_position if color == 'white' else self.black_king_position
-        king = self.board[king_position[0]][king_position[1]]
+        king_position: Tuple[int, int] = self.white_king_position if color == 'white' else self.black_king_position
+        king: King = self.board[king_position[0]][king_position[1]]
         opponent_color = 'black' if color == 'white' else 'white'
 
         # Ensure the king is correctly retrieved
@@ -570,13 +572,15 @@ class ChessBoard:
             raise ValueError(f"Expected a King at position {king_position} but found {type(king).__name__}")
 
         # Check if the king is currently in check 
-        in_check = king.is_in_check(color, self)
+        in_check: bool = king.is_in_check(color, self)
         protected_piece = False  # Flag to check if the piece that is checking the king is protected
 
         # Check if the king can escape check by moving to a different square
         if in_check:
             # Identify the piece that is checking the king
             checking_position, checking_piece = king.get_checking_piece(king_position, opponent_color, self)
+            checking_position: Tuple[int, int]
+            checking_piece: ChessPiece
 
             # Generate all possible moves for the king (1 square in each direction)
             king_x, king_y = king_position
@@ -587,10 +591,10 @@ class ChessBoard:
                     # Checks if the square that the king is trying to move to is blocked
                     if self.board[new_x][new_y] is None or self.board[new_x][new_y].color == opponent_color:
                         # Move the king to that square temporarily
-                        piece = self.board[new_x][new_y]
+                        piece: ChessPiece = self.board[new_x][new_y]
                         self.board[new_x][new_y] = self.board[king_x][king_y]
                         self.board[king_x][king_y] = None
-                        king_position = new_x, new_y
+                        king_position: Tuple[int, int] = new_x, new_y
                         if (color == "white"):
                             self.white_king_position = king_position
                         else:
@@ -623,9 +627,11 @@ class ChessBoard:
 
             # Check if we can capture the checking piece
             for pos, piece in self.pieces[color].items():
+                pos: Tuple[int, int]
+                piece: ChessPiece
                 if piece.is_valid_move(pos, checking_position, self.board):
                     # Temporarily make the capture
-                    captured_piece = self.board[checking_position[0]][checking_position[1]]
+                    captured_piece: ChessPiece = self.board[checking_position[0]][checking_position[1]]
                     self.board[checking_position[0]][checking_position[1]] = piece
                     self.board[pos[0]][pos[1]] = None
                     del self.pieces[opponent_color][checking_position]
@@ -647,12 +653,15 @@ class ChessBoard:
 
             # Check if we can block the check by moving a piece between the king and the checking piece
             if isinstance(checking_piece, (Rook, Bishop, Queen)):
-                blocking_squares = king.get_blocking_squares(king_position, checking_position)
+                blocking_squares: list[Tuple[int, int]] = king.get_blocking_squares(king_position, checking_position)
                 for pos, piece in self.pieces[color].items():
+                    pos: Tuple[int, int]
+                    piece: ChessPiece
                     for square in blocking_squares:
+                        square: Tuple[int, int]
                         if not isinstance(piece, King) and piece.is_valid_move(pos, square, self.board):
                             # Temporarily make the block
-                            original_piece = self.board[square[0]][square[1]]
+                            original_piece: ChessPiece = self.board[square[0]][square[1]]
                             self.board[square[0]][square[1]] = piece
                             self.board[pos[0]][pos[1]] = None
 
@@ -676,11 +685,13 @@ class ChessBoard:
 
         # If not in check, check for any legal moves (stalemate)
         for pos, piece in self.pieces[color].items():
+            pos: Tuple[int, int]
+            piece: ChessPiece
             for dx in range(8):
                 for dy in range(8):
                     if piece.is_valid_move(pos, (dx, dy), self.board):
                         # Temporarily make the move
-                        target_piece = self.board[dx][dy]
+                        target_piece: ChessPiece = self.board[dx][dy]
                         self.board[dx][dy] = piece
                         self.board[pos[0]][pos[1]] = None
                         if target_piece and target_piece.color == opponent_color and not isinstance(target_piece, King):
@@ -706,7 +717,7 @@ class ChessBoard:
             print("Stalemate! The game is a draw.")
         return False
 
-    def generate_legal_moves(self, color):
+    def generate_legal_moves(self, color: str) -> list[Dict[str, Tuple[int, int]]]:
         """Generate all legal moves for the given color and returns them 
         as a list in the format {'start': (x1, y1), 'end': (x2, y2)}."""
         legal_moves = []
@@ -716,21 +727,24 @@ class ChessBoard:
 
         # Iterate over each piece type and their positions
         for pos, piece in active_pieces.items():
+            pos: Tuple[int, int]
+            piece: ChessPiece
             if not piece:
                 continue
 
             # Check all the possible moves for the each piece type
             for move in piece.legal_moves(pos, color):
+                move: Tuple[int, int]
                 # Make the move temporarily to check for legality
                 if self.move_piece(pos, move, color, True):
                     legal_moves.append({'start': pos, 'end': move})
         return legal_moves
 
-    def undo_move(self, start, end, color, target_piece):
+    def undo_move(self, start: Tuple[int, int], end: Tuple[int, int], color: str, target_piece: Optional[ChessPiece]) -> None:
         """Undo a move that was made."""
         start_x, start_y = start
         end_x, end_y = end
-        piece = self.board[end_x][end_y]
+        piece: ChessPiece = self.board[end_x][end_y]
         self.board[end_x][end_y] = None
         self.board[start_x][start_y] = piece
 
@@ -754,12 +768,12 @@ class ChessBoard:
             opponent_color = 'black' if color == 'white' else 'white'
             self.board[end_x][start_y] = Pawn(opponent_color)
 
-    def undo_moves(self):
+    def undo_moves(self) -> None:
         """This method restores the board to its previous states using the FEN stack. It's slower than undo_move."""
         if not self.fen_stack:
             raise ValueError("No moves to undo.")
 
         # Pop the last FEN string and restore the board state
-        last_fen = self.fen_stack.pop()
+        last_fen: str = self.fen_stack.pop()
         self.from_fen(last_fen)
  

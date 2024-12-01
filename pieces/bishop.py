@@ -1,17 +1,18 @@
 
+from typing import Optional, Dict, Tuple
 from .piece import ChessPiece
 
 class Bishop(ChessPiece):
-    def __init__(self, color):
+    def __init__(self, color: str) -> None:
         super().__init__(color)
 
-    def __name__(self):
+    def __name__(self) -> str:
         return 'Bishop'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '♗' if self.color == 'white' else '♝'
 
-    def is_valid_move(self, start, end, board):
+    def is_valid_move(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]]) -> bool:
         """A bishop can move diagonally as long as the path is clear."""
         start_x, start_y = start
         end_x, end_y = end
@@ -19,7 +20,7 @@ class Bishop(ChessPiece):
             return self.is_path_clear(start, end, board)
         return False
 
-    def is_path_clear(self, start, end, board):
+    def is_path_clear(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]]) -> bool:
         """Helper function to check if all squares between start and end are empty."""
         x, y = start
         x2, y2 = end
@@ -34,7 +35,7 @@ class Bishop(ChessPiece):
             x, y = x + dx, y + dy  # Move to the next square
         return True
 
-    def legal_moves(self, position, color):
+    def legal_moves(self, position: Tuple[int, int], color: str) -> list[Tuple[int, int]]:
         """Generate all the possible legal moves for a bishop in a given position."""
         x, y = position
         moves = []

@@ -1,22 +1,23 @@
 
+from typing import Optional, Dict, Tuple
 from .piece import ChessPiece
-from utils import parse_position
 from .rook import Rook
 from .knight import Knight
 from .bishop import Bishop
 from .queen import Queen
+from utils import parse_position
 
 class Pawn(ChessPiece):
-    def __init__(self, color):
+    def __init__(self, color: str) -> None:
         super().__init__(color)
 
-    def __name__(self):
+    def __name__(self) -> str:
         return 'Pawn'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '♙' if self.color == 'white' else '♟'
 
-    def is_valid_move(self, start, end, board, chessboard_instance=None):
+    def is_valid_move(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]], chessboard_instance: Optional['ChessBoard'] = None) -> bool:
         """A pawn can move forward one square, or two squares from its starting position. It captures diagonally."""
         direction = 1 if self.color == 'white' else -1
         start_x, start_y = start
@@ -35,14 +36,14 @@ class Pawn(ChessPiece):
                 return True
             # En passant capture
             if chessboard_instance:
-                en_passant_square = chessboard_instance.en_passant_square
+                en_passant_square: str = chessboard_instance.en_passant_square
                 if en_passant_square and end == parse_position(en_passant_square):
                     # Remove the en-passant-captured pawn
                     board[end_x][start_y] = None
                     return True
         return False
 
-    def promote_pawn(self, position, color, chessboard_instance):
+    def promote_pawn(self, position: Tuple[int, int], color: str, chessboard_instance: 'ChessBoard') -> None:
         """Promote a pawn that reaches the final rank to a new piece chosen by the player."""
         x, y = position
         while True:
@@ -65,7 +66,7 @@ class Pawn(ChessPiece):
         # Update pieces dictionary to reflect the promoted piece
         chessboard_instance.pieces[color][position] = chessboard_instance.board[x][y]
 
-    def legal_moves(self, position, color):
+    def legal_moves(self, position: Tuple[int, int], color: str) -> list[Tuple[int, int]]:
         """Generate all the posible legal moves for a pawn in a given position."""
         direction = 1 if self.color == 'white' else -1
         x, y = position

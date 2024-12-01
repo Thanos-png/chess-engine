@@ -1,4 +1,5 @@
 
+from typing import Optional, Dict, Tuple
 from .piece import ChessPiece
 from .pawn import Pawn
 from .rook import Rook
@@ -7,20 +8,20 @@ from .bishop import Bishop
 from .queen import Queen
 
 class King(ChessPiece):
-    def __init__(self, color):
+    def __init__(self, color: str) -> None:
         super().__init__(color)
         self.has_moved = False
 
-    def __name__(self):
+    def __name__(self) -> str:
         return 'King'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '♔' if self.color == 'white' else '♚'
 
-    def is_valid_move(self, start, end, board, board_instance=None):
+    def is_valid_move(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]], board_instance=None) -> bool:
         """A king can move one square in any direction. It can also castle if certain conditions are met."""
-        dx = abs(start[0] - end[0])
-        dy = abs(start[1] - end[1])
+        dx: int = abs(start[0] - end[0])
+        dy: int = abs(start[1] - end[1])
 
         # Normal king move
         if (max(dx, dy) == 1):
@@ -28,7 +29,7 @@ class King(ChessPiece):
 
         # Castling move
         if dx == 2 and dy == 0 and not self.has_moved:
-            row = start[1]
+            row: int = start[1]
 
             # Kingside castling
             if end[0] == 6:
@@ -49,7 +50,7 @@ class King(ChessPiece):
                         return True
         return False
 
-    def is_in_check(self, color, chessboard_instance):
+    def is_in_check(self, color: str, chessboard_instance: 'ChessBoard') -> bool:
         """Determine if the king of the given color is in check."""
         king_position = chessboard_instance.white_king_position if color == 'white' else chessboard_instance.black_king_position
         opponent_color = 'black' if color == 'white' else 'white'
@@ -60,13 +61,13 @@ class King(ChessPiece):
                 return True  # King is in check
         return False
 
-    def get_blocking_squares(self, king_position, checking_position):
+    def get_blocking_squares(self, king_position: Tuple[int, int], checking_position: Tuple[int, int]) -> list[Tuple[int, int]]:
         """Return a list of squares between the king and the checking piece that could potentially block the check."""
         blocking_squares = []
         king_x, king_y = king_position
         check_x, check_y = checking_position
-        dx = (check_x - king_x) // max(1, abs(check_x - king_x))  # Direction along x-axis
-        dy = (check_y - king_y) // max(1, abs(check_y - king_y))  # Direction along y-axis
+        dx: int = (check_x - king_x) // max(1, abs(check_x - king_x))  # Direction along x-axis
+        dy: int = (check_y - king_y) // max(1, abs(check_y - king_y))  # Direction along y-axis
 
         x, y = king_x + dx, king_y + dy
         while 0 <= x <= 7 and 0 <= y <= 7 and (x, y) != (check_x, check_y) and (x, y) != king_position:
@@ -75,14 +76,16 @@ class King(ChessPiece):
             y += dy
         return blocking_squares
 
-    def get_checking_piece(self, king_position, opponent_color, chessboard_instance):
+    def get_checking_piece(self, king_position: Tuple[int, int], opponent_color: str, chessboard_instance: 'ChessBoard') -> Tuple[Optional[Tuple[int, int]], Optional[ChessPiece]]:
         """Return the position and piece that is checking the king, if any."""
         for pos, piece in chessboard_instance.pieces[opponent_color].items():
+            pos: Tuple[int, int]
+            piece: ChessPiece
             if not isinstance(piece, King) and piece.is_valid_move(pos, king_position, chessboard_instance.board):
                 return pos, piece
         return None, None
 
-    def legal_moves(self, position, color):
+    def legal_moves(self, position: Tuple[int, int], color: str) -> list[Tuple[int, int]]:
         """Generate all the possible legal moves for a king in a given position."""
         x, y = position
         moves = []
