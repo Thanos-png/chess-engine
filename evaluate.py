@@ -1,6 +1,4 @@
 
-import chess
-#from chess import polyglot
 from polyglot import Polyglot
 from typing import Optional, Dict, Tuple
 from pieces.piece import ChessPiece
