@@ -216,6 +216,7 @@ class ChessBoard:
         for position, piece in self.pieces[self.turn].items():
             position: Tuple[int, int]
             piece: ChessPiece
+
             if isinstance(piece, Bishop):
                 if piece.color == 'white':
                     bishopsWhite.append(position)  # Track White bishops for same color square check
@@ -236,6 +237,7 @@ class ChessBoard:
         for position, piece in self.pieces[opponent_color].items():
             position: Tuple[int, int]
             piece: ChessPiece
+
             if isinstance(piece, Bishop):
                 if piece.color == 'white':
                     bishopsWhite.append(position)  # Track White bishops for same color square check
@@ -406,6 +408,7 @@ class ChessBoard:
         for pos, piece in self.pieces[opponent_color].items():
             pos: Tuple[int, int]
             piece: ChessPiece
+
             if piece.is_valid_move(pos, (x, y), self.board):
                 return True
         return False
@@ -629,6 +632,7 @@ class ChessBoard:
             for pos, piece in self.pieces[color].items():
                 pos: Tuple[int, int]
                 piece: ChessPiece
+
                 if piece.is_valid_move(pos, checking_position, self.board):
                     # Temporarily make the capture
                     captured_piece: ChessPiece = self.board[checking_position[0]][checking_position[1]]
@@ -657,8 +661,10 @@ class ChessBoard:
                 for pos, piece in self.pieces[color].items():
                     pos: Tuple[int, int]
                     piece: ChessPiece
+
                     for square in blocking_squares:
                         square: Tuple[int, int]
+
                         if not isinstance(piece, King) and piece.is_valid_move(pos, square, self.board):
                             # Temporarily make the block
                             original_piece: ChessPiece = self.board[square[0]][square[1]]
@@ -687,6 +693,7 @@ class ChessBoard:
         for pos, piece in self.pieces[color].items():
             pos: Tuple[int, int]
             piece: ChessPiece
+
             for dx in range(8):
                 for dy in range(8):
                     if piece.is_valid_move(pos, (dx, dy), self.board):
@@ -729,12 +736,14 @@ class ChessBoard:
         for pos, piece in active_pieces.items():
             pos: Tuple[int, int]
             piece: ChessPiece
+
             if not piece:
                 continue
 
             # Check all the possible moves for the each piece type
             for move in piece.legal_moves(pos, color):
                 move: Tuple[int, int]
+
                 # Make the move temporarily to check for legality
                 if self.move_piece(pos, move, color, True):
                     legal_moves.append({'start': pos, 'end': move})

@@ -1,11 +1,13 @@
 
-from chess import polyglot
+import chess
+#from chess import polyglot
+from polyglot import Polyglot
 from typing import Optional, Dict, Tuple
 from pieces.piece import ChessPiece
 from pieces.pawn import Pawn
 from pieces.king import King
 from math import inf
-from utils import to_square_notation
+from utils import parse_position, to_square_notation
 from board import ChessBoard
 
 
@@ -14,19 +16,59 @@ class PolyglotEngine:
     def __init__(self, book_path) -> None:
         """Initialize the Polyglot engine with the path to the opening book."""
         self.book_path = book_path
+        self.polyglot = Polyglot(book_path)
+
+    def changePiecesFormat(self, pieces: Dict[str, Dict[Tuple[int, int], ChessPiece]]) -> Dict[Tuple[int, int], Tuple[str, str]]:
+        """Change the board.pieces format to map positions to (piece_type, color) and 
+        create a new pawns dictionairy that maps squares to color."""
+        result = {}
+        pawns = {}
+
+        for color, piece_positions in pieces.items():
+            color: str
+            piece_positions: Dict[Tuple[int, int], ChessPiece]
+
+            for position, piece in piece_positions.items():
+                position: Tuple[int, int]
+                piece: ChessPiece
+
+                if isinstance(piece, Pawn):
+                    pawns[position] = color
+
+                piece_type: str = type(piece).__name__.lower()
+                result[position] = (piece_type, color)
+
+        return result, pawns
+
+    def changeCastlingRightsFormat(self, castling_rights: Dict[str, bool]) -> str:
+        """Change the board.castling_rights format to a string representation."""
+        result = ''.join(flag for flag, available in castling_rights.items() if available)
+        return result if result else '-'  # If there are no castling rights then return '-'
+
+    def changeEnPassantSquareFormat(self, en_passant_square: str) -> Tuple[int, int]:
+        """Change the board.en_passant_square format to a string representation."""
+        return parse_position(en_passant_square)
 
     def find_move_from_book(self, board) -> str:
         """Query the Polyglot book for the best move in the current position. 
         Returns the best move in (e.g., 'e2 e4') format, or None if no move found."""
         try:
-            with chess.polyglot.open_reader(self.book_path) as reader:
-                # Query the Polyglot book for the current position
-                entry = reader.find(board)
-                if entry:
-                    move_uci: str = entry.move.uci()  # UCI is "e2e4" format
-                    move: str = move_uci[:2] + " " + move_uci[2:]  # Convert to "e2 e4" format
-                    return move
-                return None
+            best_move: Optional[str] = None
+            best_weight: float = -10
+
+            pieces, pawns = self.changePiecesFormat(board.pieces)
+            for weight, uci_move in self.polyglot.reader(pieces, self.changeCastlingRightsFormat(board.castling_rights), self.changeEnPassantSquareFormat(board.en_passant_square), board.turn, pawns):
+                weight: float
+                uci_move: str
+
+                print("-----")
+                if weight > best_weight:
+                    best_weight = weight
+                    best_move = uci_move
+
+            if best_move:
+                return f"{best_move[:2]} {best_move[2:]}"  # Convert 'e2e4' to 'e2 e4' format
+            return None
         except FileNotFoundError:
             print(f"Error: The file '{self.book_path}' was not found.")
             return None
@@ -127,11 +169,13 @@ class ChessEngine:
         for pos, piece in board.pieces['white'].items():
             pos: Tuple[int, int]
             piece: ChessPiece
+
             white_score += self.evaluate_piece(piece, pos, 'white', board)
 
         for pos, piece in board.pieces['black'].items():
             pos: Tuple[int, int]
             piece: ChessPiece
+
             black_score += self.evaluate_piece(piece, pos, 'black', board)
 
         self.numberOfFinishNodes += 1
@@ -178,6 +222,7 @@ class ChessEngine:
         # Check for doubled pawns
         for i in range(1, 4):
             board.pieces[color]: Dict[Tuple[int, int], ChessPiece]
+
             if (x, y + i) in board.pieces[color] and isinstance(board.pieces[color][(x, y + i)], Pawn):
                 penalty -= 1  # Doubled pawns are a weakness
 
@@ -185,6 +230,7 @@ class ChessEngine:
         for pos, piece_type in board.pieces[color].items():
             pos: Tuple[int, int]
             piece_type: ChessPiece
+
             if isinstance(piece_type, Pawn):
                 if (pos[1] - 1, pos[0]) in board.pieces[color] or (pos[1] + 1, pos[0]) in board.pieces[color]:
                     isolated = False
@@ -229,6 +275,7 @@ class ChessEngine:
             max_eval = -inf
             for move in board.generate_legal_moves('white'):
                 move: Dict[str, Tuple[int, int]]
+
                 # Save the board state before making the move
                 original_board = board.clone()
 
@@ -256,6 +303,7 @@ class ChessEngine:
             min_eval = inf
             for move in board.generate_legal_moves('black'):
                 move: Dict[str, Tuple[int, int]]
+
                 # Save the board state before making the move
                 original_board = board.clone()
 
@@ -298,6 +346,7 @@ class ChessEngine:
 
         for move in board.generate_legal_moves(board.turn):
             move: Dict[str, Tuple[int, int]]
+
             # Save the board state before making the move
             original_board = board.clone()
 
@@ -312,7 +361,7 @@ class ChessEngine:
             board.updateEnPassantSquare(board.turn, last_move)
             board.updateFENstack()
             evaluation: float = self.minimax(board, depth - 1, -inf, inf, board.turn, original_board)
-            print(evaluation)
+            # print(evaluation)
 
             # Restore the board state
             self.restoreBoardState(board, original_board)
