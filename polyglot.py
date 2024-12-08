@@ -1,4 +1,6 @@
 
+# This file is heavily inspired from the python-chess liabrary
+
 import struct
 from typing import Optional, Dict, Tuple
 
@@ -205,7 +207,7 @@ POLYGLOT_RANDOM_ARRAY = [
 
 class ZobristHasher:
     def __init__(self, array: list[int]) -> None:
-        assert len(array) >= 781, "POLYGLOT_RANDOM_ARRAY must contain 781 values."
+        assert len(array) >= 781  # POLYGLOT_RANDOM_ARRAY must contain 781 values.
         self.array = array
 
     def hash_board(self, pieces: Dict[Tuple[int, int], Tuple[str, str]]) -> int:
@@ -213,10 +215,9 @@ class ZobristHasher:
         zobrist_hash = 0
 
         for (x, y), (piece_type, color) in pieces.items():
-            piece_index = (board.piece_type_at(square) - 1) * 2 + pivot
-            piece_index = ('pawn', 'knight', 'bishop', 'rook', 'queen', 'king').index(piece_type) * 2 
-            piece_index += 0 if color == 'white' else 1
-            square_index = y * 8 + x
+            piece_index = ('pawn', 'knight', 'bishop', 'rook', 'queen', 'king').index(piece_type) * 2
+            piece_index += 1 if color == 'white' else 0
+            square_index = y * 8 + x  # 0 for a1 and 63 for h8
             zobrist_hash ^= self.array[64 * piece_index + square_index]
 
         return zobrist_hash
@@ -239,15 +240,13 @@ class ZobristHasher:
         pawns: A dictionary of pawn positions and their colors."""
         if ep_square:
             x, y = ep_square
-            if turn == "white":
-                capture_row = y - 1
-            else:
-                capture_row = y + 1
+            capture_row = y - 1 if turn == "white" else y + 1
 
-            left_pawn = (x - 1, capture_row)
-            right_pawn = (x + 1, capture_row)
-            if left_pawn in pawns or right_pawn in pawns:
-                return self.array[772 + x]
+            if 0 <= capture_row < 8:
+                left_pawn = (x - 1, capture_row)
+                right_pawn = (x + 1, capture_row)
+                if left_pawn in pawns or right_pawn in pawns:
+                    return self.array[772 + x]
         return 0
 
     def hash_turn(self, turn: str) -> int:
@@ -271,20 +270,22 @@ class Polyglot:
         """Initialize the Polyglot reader."""
         self.book_path = book_path
 
-    def _zobrist_hash(self, pieces: Dict[Tuple[int, int], Tuple[str, str]], castling_rights: str, ep_square: Optional[Tuple[int, int]], turn: str, pawns: Dict[Tuple[int, int], str]) -> int:
+    def _zobrist_hash(self, board, pieces: Dict[Tuple[int, int], Tuple[str, str]], castling_rights: str, ep_square: Optional[Tuple[int, int]], turn: str, pawns: Dict[Tuple[int, int], str]) -> int:
         """Compute the Polyglot Zobrist hash for a given board state using the ZobristHasher.
         pieces: A dictionary mapping squares to (piece_type, color).
         Example: {(0, 0): ('rook', 'white'), (0, 1): ('pawn', 'black')}
         pawns: A dictionary mapping squares to color
         Example: {(0, 1): 'white', (0, 6): 'black'}"""
         zobrist_hasher = ZobristHasher(POLYGLOT_RANDOM_ARRAY)
-        return zobrist_hasher(pieces, castling_rights, ep_square, turn, pawns)
+        hash_value = zobrist_hasher(pieces, castling_rights, ep_square, turn, pawns)
 
-    def reader(self, board_fen: str) -> None:
-        """Query the Polyglot book for the current board position.
-        Yields a Tuple[int, str]: (Weight, Move in UCI format)."""
+        return hash_value
+
+    def reader(self, board, pieces: Dict[Tuple[int, int], Tuple[str, str]], castling_rights: str, ep_square: Optional[Tuple[int, int]], turn: str, pawns: Dict[Tuple[int, int], str]) -> None:
+        """Query the Polyglot book for the current board state.
+        Yields a Tuple[int, str]: (Weight, Move in UCI "e2e4" format)."""
         try:
-            zobrist_hash = self._zobrist_hash(board_fen)
+            zobrist_hash = self._zobrist_hash(board, pieces, castling_rights, ep_square, turn, pawns)
             with open(self.book_path, "rb") as book:
                 # Read entries in the book
                 while True:
@@ -296,11 +297,17 @@ class Polyglot:
                     entry_hash, move, weight, learn = entry
 
                     if entry_hash == zobrist_hash:
-                        # Convert move to UCI format
-                        from_square = chr((move >> 6) & 7 + ord("a")) + str(((move >> 9) & 7) + 1)
-                        to_square = chr((move >> 0) & 7 + ord("a")) + str(((move >> 3) & 7) + 1)
-                        promotion = (move >> 12) & 7
+                        # Extract origin and destination squares
+                        from_file = (move >> 6) & 7
+                        from_rank = (move >> 9) & 7
+                        to_file = (move >> 0) & 7
+                        to_rank = (move >> 3) & 7
 
+                        # Convert move to UCI "e2e4" format
+                        from_square = f"{chr(from_file + ord('a'))}{from_rank + 1}"
+                        to_square = f"{chr(to_file + ord('a'))}{to_rank + 1}"
+
+                        promotion = (move >> 12) & 7
                         if promotion:
                             promo_piece = "nbrq"[promotion - 1]
                             uci_move = f"{from_square}{to_square}{promo_piece}"

@@ -45,7 +45,7 @@ class PolyglotEngine:
 
     def changeEnPassantSquareFormat(self, en_passant_square: str) -> Tuple[int, int]:
         """Change the board.en_passant_square format to a string representation."""
-        return parse_position(en_passant_square)
+        return parse_position(en_passant_square) if en_passant_square else None
 
     def find_move_from_book(self, board) -> str:
         """Query the Polyglot book for the best move in the current position. 
@@ -54,18 +54,21 @@ class PolyglotEngine:
             best_move: Optional[str] = None
             best_weight: float = -10
 
+            # Change the format and unpack the variables
             pieces, pawns = self.changePiecesFormat(board.pieces)
-            for weight, uci_move in self.polyglot.reader(pieces, self.changeCastlingRightsFormat(board.castling_rights), self.changeEnPassantSquareFormat(board.en_passant_square), board.turn, pawns):
+            castling_rights = self.changeCastlingRightsFormat(board.castling_rights)
+            ep_square = self.changeEnPassantSquareFormat(board.en_passant_square)
+
+            for weight, uci_move in self.polyglot.reader(board, pieces, castling_rights, ep_square, board.turn, pawns):
                 weight: float
                 uci_move: str
 
-                print("-----")
                 if weight > best_weight:
                     best_weight = weight
                     best_move = uci_move
 
             if best_move:
-                return f"{best_move[:2]} {best_move[2:]}"  # Convert 'e2e4' to 'e2 e4' format
+                return f"{best_move[:2]} {best_move[2:]}"  # Convert UCI 'e2e4' to 'e2 e4' format
             return None
         except FileNotFoundError:
             print(f"Error: The file '{self.book_path}' was not found.")
