@@ -190,7 +190,7 @@ class ChessEngine:
         value = self.piece_values[piece_type]
 
         # Add positional value
-        value += 0.4 * self.evaluate_position(piece_type, position, color)
+        value += 0.2 * self.evaluate_position(piece_type, position, color)
 
         # Special considerations for pawns
         if piece_type == 'pawn':
@@ -198,7 +198,7 @@ class ChessEngine:
 
         # Add penalties for king safety
         if piece_type == 'king':
-            value += 0.001 * self.evaluate_king_safety(position, color)
+            value += 0.001 * self.evaluate_king_safety(position, color, board)
 
         return round(value, 4)
 
@@ -240,10 +240,13 @@ class ChessEngine:
 
         return penalty
 
-    def evaluate_king_safety(self, position: Tuple[int, int], color: str) -> float:
-        """Evaluate the king's safety by making sure that he cover."""
+    def evaluate_king_safety(self, position: Tuple[int, int], color: str, board: ChessBoard) -> float:
+        """Evaluate the king's safety by making sure that he is covered."""
         x , y = position
         penalty = 0
+        king: King = board.board[x][y]
+        if king.is_in_check(color, board):
+            penalty -= 0.5
 
         return penalty
 
