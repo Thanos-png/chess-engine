@@ -13,8 +13,12 @@ def main():
     color = None
 
     # Player chooses color
-    while color not in ['white', 'black', 'w', 'b']:
+    while color not in ['white', 'black', 'w', 'b', '']:
         color = input("Choose your color (white/black): ").strip().lower()
+    if color == 'w':
+        color = 'white'
+    elif color == 'b':
+        color = 'black'
 
     while True:
         turn = board.turn
@@ -45,7 +49,7 @@ def main():
             # Start the timer
             start_time = time.time()
 
-            print("Engine is thinking...")
+            print("Engine is thinking...\n")
             move = engine.find_best_move(board, depth=3)
 
             # End the timer

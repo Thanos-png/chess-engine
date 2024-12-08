@@ -382,7 +382,7 @@ class ChessEngine:
 
         # Convert the best move to the "e2 e4" format
         if best_move:
-            print("Nodes: ", self.numberOfFinishNodes)
+            # print("Nodes: ", self.numberOfFinishNodes)  # Debugging
 
             start_square = to_square_notation(best_move['start'])
             end_square = to_square_notation(best_move['end'])
