@@ -1,5 +1,4 @@
 
-from polyglot import Polyglot
 from typing import Optional, Dict, Tuple
 from pieces.piece import ChessPiece
 from pieces.pawn import Pawn
@@ -7,6 +6,7 @@ from pieces.king import King
 from math import inf
 from utils import parse_position, to_square_notation
 from board import ChessBoard
+from polyglot import Polyglot
 
 
 class PolyglotEngine:
@@ -95,7 +95,7 @@ class ChessEngine:
             'king': 10000  # King is invaluable for evaluation
         }
 
-        # Piece-tables 
+        # Piece-tables. They ensure a quick evaluation of a piece's position
         self.position_values = {
             'pawn': [
                 [0, 0, 0, 0, 0, 0, 0, 0],

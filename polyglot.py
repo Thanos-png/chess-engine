@@ -1,10 +1,11 @@
 
-# This file is heavily inspired from the python-chess liabrary
+# This file is heavily inspired from the python-chess library
 
 import struct
 from typing import Optional, Dict, Tuple
 
 
+# 781 random 64-bit integers from python-chess library. It ensures uniform distribution and low collision probability
 POLYGLOT_RANDOM_ARRAY = [
     0x9D39247E33776D41, 0x2AF7398005AAA5C7, 0x44DB015024623547, 0x9C15F73E62A76AE2,
     0x75834465489C0C89, 0x3290AC3A203001BF, 0x0FBBAD1F61042279, 0xE83A908FF2FB60CA,
@@ -207,11 +208,17 @@ POLYGLOT_RANDOM_ARRAY = [
 
 class ZobristHasher:
     def __init__(self, array: list[int]) -> None:
-        assert len(array) >= 781  # POLYGLOT_RANDOM_ARRAY must contain 781 values.
+        """Initialize the Zobrist hasher with a predefined random array.
+        array: A list of 781 64-bit integers representing the Zobrist hashing 
+        values for pieces, castling rights, en passant files, and turn."""
+        # Raise AssertionError if the provided array does not contain exactly 781 values.
+        assert len(array) == 781, "POLYGLOT_RANDOM_ARRAY must contain exactly 781 values."
         self.array = array
 
     def hash_board(self, pieces: Dict[Tuple[int, int], Tuple[str, str]]) -> int:
-        """Hash the board based on piece positions."""
+        """Hash the board based on piece positions.
+        pieces: A dictionary mapping squares to (piece_type, color).
+        Example: {(0, 0): ('rook', 'white'), (0, 1): ('pawn', 'black')}"""
         zobrist_hash = 0
 
         for (x, y), (piece_type, color) in pieces.items():
@@ -283,7 +290,7 @@ class Polyglot:
 
     def reader(self, board, pieces: Dict[Tuple[int, int], Tuple[str, str]], castling_rights: str, ep_square: Optional[Tuple[int, int]], turn: str, pawns: Dict[Tuple[int, int], str]) -> None:
         """Query the Polyglot book for the current board state.
-        Yields a Tuple[int, str]: (Weight, Move in UCI "e2e4" format)."""
+        Yields a Tuple[int, str]: (Weight in int, Move in UCI "e2e4" format)."""
         try:
             zobrist_hash = self._zobrist_hash(board, pieces, castling_rights, ep_square, turn, pawns)
             with open(self.book_path, "rb") as book:
