@@ -8,6 +8,7 @@ from pieces.bishop import Bishop
 from pieces.queen import Queen
 from pieces.king import King
 from utils import to_square_notation
+from copy import deepcopy
 
 
 class ChessBoard:
@@ -63,14 +64,14 @@ class ChessBoard:
 
     # Setter for halfmove clock
     def setHalfMoveClock(self, count: int) -> None:
-        if isinstance(count, int) and count >= 0:
+        if (isinstance(count, int) and count >= 0):
             self.halfmove_clock = count
         else:
             raise ValueError("Halfmove clock must be a non-negative integer.")
 
     # Setter for fullmove number
     def setFullMoveNumber(self, number: int) -> None:
-        if isinstance(number, int) and number > 0:
+        if (isinstance(number, int) and number > 0):
             self.fullmove_number = number
         else:
             raise ValueError("Fullmove number must be a positive integer.")
@@ -115,20 +116,20 @@ class ChessBoard:
                 self.castling_rights['K'] = False
 
         # Clear board history if castling rights change
-        if prev_castling_rights != self.castling_rights:
+        if (prev_castling_rights != self.castling_rights):
             self.board_history.clear()
 
     def updateEnPassantSquare(self, color: str, last_move: Tuple[Tuple[int, int], Tuple[int, int], ChessPiece]) -> None:
         """Update en_passant_square based on the last move."""
         if last_move and isinstance(last_move[2], Pawn):
             # Check if the last move was a double pawn push
-            if abs(last_move[0][1] - last_move[1][1]) == 2:
+            if (abs(last_move[0][1] - last_move[1][1]) == 2):
                 # Check if the pawn that moved two squares forward has any neighboring (left and right) pawns
                 for dx in [-1, 1]:
                     neighbor_x: int = last_move[1][0] + dx
-                    if 0 <= neighbor_x < 8:
+                    if (0 <= neighbor_x < 8):
                         neighbor_piece: ChessPiece = self.board[neighbor_x][last_move[1][1]]
-                        if isinstance(neighbor_piece, Pawn) and neighbor_piece.color == color:
+                        if (isinstance(neighbor_piece, Pawn) and neighbor_piece.color == color):
                             self.setEnPassantSquare(to_square_notation((last_move[1][0], (last_move[0][1] + last_move[1][1]) // 2)))
                             return
         self.setEnPassantSquare(None)
@@ -189,14 +190,14 @@ class ChessBoard:
         """Check if the current board state has occurred three times."""
         current_state: str = self.to_fen().rsplit(' ', 2)[0]  # Update the current state of the board without halfmove_clock and fullmove_number
         self.board_history[current_state] = self.board_history.get(current_state, 0) + 1  # Update board history
-        if self.board_history.get(current_state, 0) >= 3:
+        if (self.board_history.get(current_state, 0) >= 3):
             print("Draw by threefold repetition.")
             return True
         return False
 
     def checkFiftyMoveRule(self) -> bool:
         """Check if the game has reached a draw by the fifty-move rule."""
-        if self.halfmove_clock >= 50:
+        if (self.halfmove_clock >= 50):
             print("Draw by fifty-move rule.")
             return True
         return False
@@ -218,14 +219,14 @@ class ChessBoard:
             piece: ChessPiece
 
             if isinstance(piece, Bishop):
-                if piece.color == 'white':
+                if (piece.color == 'white'):
                     bishopsWhite.append(position)  # Track White bishops for same color square check
                     bishopsCountWhite += 1
                 else:
                     bishopsBlack.append(position)  # Track Black bishops for same color square check
                     bishopsCountBlack += 1
             elif isinstance(piece, Knight):
-                if piece.color == 'white':
+                if (piece.color == 'white'):
                     knightsCountWhite += 1
                 else:
                     knightsCountBlack += 1
@@ -239,14 +240,14 @@ class ChessBoard:
             piece: ChessPiece
 
             if isinstance(piece, Bishop):
-                if piece.color == 'white':
+                if (piece.color == 'white'):
                     bishopsWhite.append(position)  # Track White bishops for same color square check
                     bishopsCountWhite += 1
                 else:
                     bishopsBlack.append(position)  # Track Black bishops for same color square check
                     bishopsCountBlack += 1
             elif isinstance(piece, Knight):
-                if piece.color == 'white':
+                if (piece.color == 'white'):
                     knightsCountWhite += 1
                 else:
                     knightsCountBlack += 1
@@ -265,7 +266,7 @@ class ChessBoard:
             white_bishops_same_color: bool = all((pos[0] + pos[1]) % 2 == (bishopsWhite[0][0] + bishopsWhite[0][1]) % 2 for pos in bishopsWhite)
             black_bishops_same_color: bool = all((pos[0] + pos[1]) % 2 == (bishopsBlack[0][0] + bishopsBlack[0][1]) % 2 for pos in bishopsBlack)
             pos: Tuple[int, int]
-            if white_bishops_same_color or black_bishops_same_color:
+            if (white_bishops_same_color or black_bishops_same_color):
                 return True
         return False
 
@@ -285,13 +286,13 @@ class ChessBoard:
                 if piece is None:
                     empty_count += 1
                 else:
-                    if empty_count > 0:
+                    if (empty_count > 0):
                         row_fen += str(empty_count)
                         empty_count = 0
                     row_fen += self.create_piece_for_fen(piece)
 
             # If there were empty squares at the end of the row, add the count
-            if empty_count > 0:
+            if (empty_count > 0):
                 row_fen += str(empty_count)
             fen.append(row_fen)  # Append the row's FEN representation to the overall FEN
         fen = '/'.join(fen)  # Join the rows with '/' to separate them
@@ -333,7 +334,7 @@ class ChessBoard:
                     if piece:
                         self.pieces[piece.color][(x, 7 - y)] = piece  # Add the piece to the pieces dictionary
                         if isinstance(piece, King):
-                            if piece.color == 'white':
+                            if (piece.color == 'white'):
                                 self.white_king_position = (x, 7 - y)
                             else:
                                 self.black_king_position = (x, 7 - y)
@@ -376,7 +377,7 @@ class ChessBoard:
         elif isinstance(piece, King):
             char = 'k'
         
-        if piece and piece.color == 'white':
+        if (piece and piece.color == 'white'):
             char = char.upper()
         return char
 
@@ -423,31 +424,21 @@ class ChessBoard:
         start_x, start_y = start
         end_x, end_y = end
 
-        if start_x < 0 or start_x > 7 or start_y < 0 or start_y > 7 or end_x < 0 or end_x > 7 or end_y < 0 or end_y > 7:
+        if (start_x < 0 or start_x > 7 or start_y < 0 or start_y > 7 or end_x < 0 or end_x > 7 or end_y < 0 or end_y > 7):
             return False
 
         piece: ChessPiece = self.board[start_x][start_y]  # Piece at the start square
         target_piece: ChessPiece = self.board[end_x][end_y]  # Piece at the target square(if any)
 
         # Check if the destination square contains a piece of the same color
-        if target_piece and target_piece.color == color:
+        if (target_piece and target_piece.color == color):
             return False
 
         # Check if the piece at the start square is of the correct color
-        if piece and piece.color == color:
+        if (piece and piece.color == color):
             if isinstance(piece, King):
                 if piece.is_valid_move(start, end, self.board, self):
                     if self.move_piece_helper(start, end, self.board, color, flag):
-                        # Castling move
-                        if abs(start[0] - end[0]) == 2:
-                            row = start[1]
-                            if end[0] == 6:  # Kingside
-                                self.board[5][row] = self.board[7][row]
-                                self.board[7][row] = None
-                            elif end[0] == 2:  # Queenside
-                                self.board[3][row] = self.board[0][row]
-                                self.board[0][row] = None
-
                         if not flag:
                             self.has_moved = True
                             if (color == "white"):
@@ -456,7 +447,7 @@ class ChessBoard:
                                 self.black_king_position = (end_x, end_y)
 
                             # Update fullmove number
-                            if color == 'black':
+                            if (color == 'black'):
                                 self.updateFullMoveNumber()
                             self.updateHalfMoveClock()  # Increment halfmove clock
                             self.updateCastlingRights(color, start, end)  # Update castling rights because the king moved
@@ -464,7 +455,7 @@ class ChessBoard:
                 return False
             # Check for en passant capture
             en_passant_target_pawn: ChessPiece = self.board[end_x][start_y]  # Pawn that can be captured en passant (if any)
-            if self.en_passant_square and isinstance(piece, Pawn) and self.en_passant_square == to_square_notation(end) and piece.is_valid_move(start, end, self.board, self):
+            if (self.en_passant_square and isinstance(piece, Pawn) and self.en_passant_square == to_square_notation(end) and piece.is_valid_move(start, end, self.board, self)):
                 if self.move_piece_helper(start, end, self.board, color, flag):
                     if flag:
                         # Restore the enemy pawn that was captured en passant
@@ -475,7 +466,7 @@ class ChessBoard:
                         del self.getPieces()[opponent_color][(end_x, start_y)]
 
                         # Update fullmove number
-                        if color == 'black':
+                        if (color == 'black'):
                             self.updateFullMoveNumber()
 
                         # Reset halfmove clock because a pawn was moved
@@ -507,11 +498,11 @@ class ChessBoard:
                                     piece.promote_pawn((end_x, end_y), color, self)
 
                         # Update fullmove number
-                        if color == 'black':
+                        if (color == 'black'):
                             self.updateFullMoveNumber()
 
                         # Update castling rights because a rook moved or was captured
-                        if isinstance(piece, Rook) or end == (0, 0) or end == (7, 0) or end == (0, 7) or end == (7, 7):
+                        if (isinstance(piece, Rook) or end == (0, 0) or end == (7, 0) or end == (0, 7) or end == (7, 7)):
                             self.updateCastlingRights(color, start, end)
                     return True
         return False
@@ -525,12 +516,21 @@ class ChessBoard:
         target_piece: ChessPiece = self.board[end_x][end_y]  # Piece at the target square(if any)
 
         # Save the state of the board for check validation
-        self.board[end_x][end_y] = piece
         if isinstance(piece, King):
             king_position: Tuple[int, int] = (end_x, end_y)
+            king_positionPrev: Tuple[int, int] = self.white_king_position if color == 'white' else self.black_king_position
+            if color == 'white':
+                self.white_king_position = king_position
+            else:
+                self.black_king_position = king_position
         else:
             king_position: Tuple[int, int] = self.white_king_position if color == 'white' else self.black_king_position
+
+        # Change the board and pieces(temporarily)
+        self.board[end_x][end_y] = piece
         self.board[start_x][start_y] = None
+        del self.pieces[color][start]
+        self.pieces[color][end] = piece
         
         # Get the king instance for the current player
         king: King = self.board[king_position[0]][king_position[1]]
@@ -540,22 +540,53 @@ class ChessBoard:
             raise ValueError(f"Expected a King at position {king_position} but found {type(king).__name__}")
 
         # Check if this move leaves the king in check
-        if target_piece and target_piece.color != color and not flag:
+        if (target_piece and target_piece.color != color):
             del self.pieces[opponent_color][end]
         if king.is_in_check(color, self):
             # Revert move if it results in check
             self.board[start_x][start_y] = piece
             self.board[end_x][end_y] = target_piece
-            if target_piece and target_piece.color != color:
+            self.pieces[color][start] = piece
+            del self.pieces[color][end]
+            if (target_piece and target_piece.color != color):
                 self.pieces[opponent_color][end] = target_piece
+            if isinstance(piece, King):
+                if color == 'white':
+                    self.white_king_position = king_positionPrev
+                else:
+                    self.black_king_position = king_positionPrev
             return False
 
         if flag:
             self.board[start_x][start_y] = piece
             self.board[end_x][end_y] = target_piece
+            self.pieces[color][start] = piece
+            del self.pieces[color][end]
+            if (target_piece and target_piece.color != color):
+                self.pieces[opponent_color][end] = target_piece
+            if isinstance(piece, King):
+                if color == 'white':
+                    self.white_king_position = king_positionPrev
+                else:
+                    self.black_king_position = king_positionPrev
         else:
+            # Castling move
+            if (isinstance(piece, King) and abs(start[0] - end[0]) == 2):
+                row = start[1]
+                if end[0] == 6:  # Kingside
+                    self.board[5][row] = self.board[7][row]
+                    self.board[7][row] = None
+                    rook: Rook = self.pieces[color][(7, 0)]
+                    del self.pieces[color][(7, 0)]
+                    self.pieces[color][(5, 0)] = rook
+                elif end[0] == 2:  # Queenside
+                    self.board[3][row] = self.board[0][row]
+                    self.board[0][row] = None
+                    rook: Rook = self.pieces[color][(0, 0)]
+                    del self.pieces[color][(0, 0)]
+                    self.pieces[color][(3, 0)] = rook
             # Reset halfmove clock because a piece is captured
-            if target_piece and target_piece.color != color:
+            if (target_piece and target_piece.color != color):
                 self.halfmove_clock = 0
             self.update_piece_position(start, end)
         return True
@@ -572,6 +603,7 @@ class ChessBoard:
 
         # Ensure the king is correctly retrieved
         if not isinstance(king, King):
+            self.display()
             raise ValueError(f"Expected a King at position {king_position} but found {type(king).__name__}")
 
         # Check if the king is currently in check 
@@ -590,7 +622,7 @@ class ChessBoard:
             for dx, dy in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]:
                 new_x, new_y = king_x + dx, king_y + dy
                 # Check if the square that the king is trying to move to is inside the board
-                if 0 <= new_x <= 7 and 0 <= new_y <= 7:
+                if (0 <= new_x <= 7 and 0 <= new_y <= 7):
                     # Checks if the square that the king is trying to move to is blocked
                     if self.board[new_x][new_y] is None or self.board[new_x][new_y].color == opponent_color:
                         # Move the king to that square temporarily
@@ -701,7 +733,7 @@ class ChessBoard:
                         target_piece: ChessPiece = self.board[dx][dy]
                         self.board[dx][dy] = piece
                         self.board[pos[0]][pos[1]] = None
-                        if target_piece and target_piece.color == opponent_color and not isinstance(target_piece, King):
+                        if (target_piece and target_piece.color == opponent_color and not isinstance(target_piece, King)):
                             del self.pieces[opponent_color][(dx, dy)]
 
                         # Check if this move leaves the king in check
@@ -716,7 +748,7 @@ class ChessBoard:
                         # Undo the move
                         self.board[pos[0]][pos[1]] = piece
                         self.board[dx][dy] = target_piece
-                        if target_piece and target_piece.color == opponent_color and not isinstance(target_piece, King):
+                        if (target_piece and target_piece.color == opponent_color and not isinstance(target_piece, King)):
                             self.pieces[opponent_color][(dx, dy)] = target_piece
 
         # No legal moves were found and the king is not in check, so it's stalemate
@@ -724,28 +756,38 @@ class ChessBoard:
             print("Stalemate! The game is a draw.")
         return False
 
-    def generate_legal_moves(self, color: str) -> list[Dict[str, Tuple[int, int]]]:
+    def generate_legal_moves(self, color: str, flag=False) -> list[Dict[str, Tuple[int, int]]]:
         """Generate all legal moves for the given color and returns them 
         as a list in the format {'start': (x1, y1), 'end': (x2, y2)}."""
         legal_moves = []
 
-        # Determine the active pieces for the color
-        active_pieces = self.pieces['white'] if color == 'white' else self.pieces['black']
+        # Determine the active pieces for the color and create a deep copy of them to avoid modifications during the loop
+        active_pieces: Dict[Tuple[int, int], ChessPiece] = deepcopy(self.pieces['white'] if color == 'white' else self.pieces['black'])
 
         # Iterate over each piece type and their positions
+        # print("--------------------------------")
         for pos, piece in active_pieces.items():
             pos: Tuple[int, int]
             piece: ChessPiece
+
+            # if flag and pos == (6, 2):
+            #     print("oooooooooooooooooo")
+            #     print(active_pieces.items())
 
             if not piece:
                 continue
 
             # Check all the possible moves for the each piece type
+            # print("Piece: ", piece, " Pos: ", pos, " Legal moves: ", piece.legal_moves(pos, color))
             for move in piece.legal_moves(pos, color):
                 move: Tuple[int, int]
 
                 # Make the move temporarily to check for legality
+                # print("Trying to move piece from: ", pos, " to ", move)
                 if self.move_piece(pos, move, color, True):
+                    # print({'start': pos, 'end': move})
+                    # if (pos == (4, 7) and move == (3, 6)):
+                    #     print("Board: ", self.board[4][7], " Dict: ", active_pieces[(4, 7)])
                     legal_moves.append({'start': pos, 'end': move})
         return legal_moves
 
@@ -764,16 +806,16 @@ class ChessBoard:
         # Check for castling move
         if isinstance(piece, King) and abs(start_x - end_x) == 2 and start_y == end_y:
             # Kingside castling
-            if end_x == 6:
+            if (end_x == 6):
                 self.board[7][start_y] = self.board[5][start_y]
                 self.board[5][start_y] = None
             # Queenside castling
-            elif end_x == 2:
+            elif (end_x == 2):
                 self.board[0][start_y] = self.board[3][start_y]
                 self.board[3][start_y] = None
 
         # Check for en passant move
-        if isinstance(piece, Pawn) and start_x != end_x and not target_piece:
+        if (isinstance(piece, Pawn) and start_x != end_x and not target_piece):
             opponent_color = 'black' if color == 'white' else 'white'
             self.board[end_x][start_y] = Pawn(opponent_color)
 

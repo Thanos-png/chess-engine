@@ -5,7 +5,7 @@ import struct
 from typing import Optional, Dict, Tuple
 
 
-# 781 random 64-bit integers from python-chess library. It ensures uniform distribution and low collision probability
+# 781 random 64-bit integers from python-chess library. They ensure a uniform distribution and a low collision probability
 POLYGLOT_RANDOM_ARRAY = [
     0x9D39247E33776D41, 0x2AF7398005AAA5C7, 0x44DB015024623547, 0x9C15F73E62A76AE2,
     0x75834465489C0C89, 0x3290AC3A203001BF, 0x0FBBAD1F61042279, 0xE83A908FF2FB60CA,
@@ -207,6 +207,7 @@ POLYGLOT_RANDOM_ARRAY = [
 
 
 class ZobristHasher:
+
     def __init__(self, array: list[int]) -> None:
         """Initialize the Zobrist hasher with a predefined random array.
         array: A list of 781 64-bit integers representing the Zobrist hashing 

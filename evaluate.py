@@ -187,10 +187,10 @@ class ChessEngine:
         """Evaluate the value of a single piece, including material, position, and special rules."""
         piece_type: str = type(piece).__name__.lower()
         # Add material value
-        value = self.piece_values[piece_type]
+        value = 3 * self.piece_values[piece_type]
 
         # Add positional value
-        value += 0.2 * self.evaluate_position(piece_type, position, color)
+        value += 0.1 * self.evaluate_position(piece_type, position, color)
 
         # Special considerations for pawns
         if piece_type == 'pawn':
@@ -276,8 +276,13 @@ class ChessEngine:
             return evaluation
 
         if maximizing_player == 'white':
+            # print("^^^^^^^^^^^^^^^^^^^^^^^^")
+            # print("WHITE")
+            # print(board.display())
+            # print("^^^^^^^^^^^^^^^^^^^^^^^^")
             max_eval = -inf
-            for move in board.generate_legal_moves('white'):
+            legal_moves = board.generate_legal_moves('white', True)
+            for move in legal_moves:
                 move: Dict[str, Tuple[int, int]]
 
                 # Save the board state before making the move
@@ -286,7 +291,7 @@ class ChessEngine:
                 # Make the move on the board
                 piece: ChessPiece = board.board[move['start'][0]][move['start'][1]]  # Save the moving piece
                 target_piece: Optional[ChessPiece] = board.board[move['end'][0]][move['end'][1]]  # Save the target piece (if any)
-                board.move_piece(move['start'], move['end'], 'white')
+                board.move_piece(move['start'], move['end'], 'white', False, True)
 
                 # Update the turn, en passant square, FEN stack and evaluate the state
                 board.updateTurn()
@@ -304,8 +309,13 @@ class ChessEngine:
                     break  # Beta cutoff
             return max_eval
         else:
+            # print("^^^^^^^^^^^^^^^^^^^^^^^^")
+            # print("BLACK")
+            # print(board.display())
+            # print("^^^^^^^^^^^^^^^^^^^^^^^^")
             min_eval = inf
-            for move in board.generate_legal_moves('black'):
+            legal_moves = board.generate_legal_moves('black', True)
+            for move in legal_moves:
                 move: Dict[str, Tuple[int, int]]
 
                 # Save the board state before making the move
@@ -314,7 +324,7 @@ class ChessEngine:
                 # Make the move on the board
                 piece: ChessPiece = board.board[move['start'][0]][move['start'][1]]  # Save the moving piece
                 target_piece: Optional[ChessPiece] = board.board[move['end'][0]][move['end'][1]]  # Save the target piece (if any)
-                board.move_piece(move['start'], move['end'], 'black')
+                board.move_piece(move['start'], move['end'], 'black', False, True)
 
                 # Update the turn, en passant square, FEN stack and evaluate the state
                 board.updateTurn()
@@ -348,8 +358,12 @@ class ChessEngine:
         best_move = None
         best_value = -inf if board.turn == 'white' else inf
 
-        for move in board.generate_legal_moves(board.turn):
+        # print("-Start-")
+        legal_moves = board.generate_legal_moves(board.turn, True)
+        print(legal_moves)
+        for move in legal_moves:
             move: Dict[str, Tuple[int, int]]
+            # print("Move: ", move)
 
             # Save the board state before making the move
             original_board = board.clone()
@@ -357,7 +371,7 @@ class ChessEngine:
             # Make the move on the board
             piece: ChessPiece = board.board[move['start'][0]][move['start'][1]]  # Save the moving piece
             target_piece: Optional[ChessPiece] = board.board[move['end'][0]][move['end'][1]]  # Save the target piece (if any)
-            board.move_piece(move['start'], move['end'], board.turn)
+            board.move_piece(move['start'], move['end'], board.turn, False, True)
 
             # Update the turn, en passant square, FEN stack and evaluate the state
             board.updateTurn()
@@ -365,7 +379,6 @@ class ChessEngine:
             board.updateEnPassantSquare(board.turn, last_move)
             board.updateFENstack()
             evaluation: float = self.minimax(board, depth - 1, -inf, inf, board.turn, original_board)
-            # print(evaluation)
 
             # Restore the board state
             self.restoreBoardState(board, original_board)

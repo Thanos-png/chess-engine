@@ -39,7 +39,7 @@ class King(ChessPiece):
                         not board_instance.is_square_under_attack((5, row), self.color) and
                         not board_instance.is_square_under_attack((6, row), self.color)):
                         return True
-            
+
             # Queenside castling
             elif end[0] == 2:
                 if isinstance(board[0][row], Rook) and not board[0][row].has_moved and board_instance:  # Check if rook is there and hasn't moved
@@ -96,6 +96,7 @@ class King(ChessPiece):
             (x, y + 1), (x, y - 1),
             (x + 1, y + 1), (x + 1, y - 1),
             (x - 1, y + 1), (x - 1, y - 1),
+            (2, 0), (6, 0)  # Castling moves
         ]
     
         # Filter moves within the board
