@@ -45,7 +45,10 @@ def main():
         print(f"{turn.capitalize()}'s move")
 
         # Get move
+        engineflag = False
         if turn != color:
+            engineflag = True
+
             # Start the timer
             start_time = time.time()
 
@@ -76,7 +79,7 @@ def main():
             piece = board.board[start[0]][start[1]]
 
             if piece and piece.color == turn:
-                if board.move_piece(start, end, turn):
+                if board.move_piece(start, end, turn, False, engineflag):
                     turn = board.updateTurn()
                     last_move = (start, end, piece)
                     board.updateEnPassantSquare(turn, last_move)

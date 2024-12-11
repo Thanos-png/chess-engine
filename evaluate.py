@@ -267,7 +267,7 @@ class ChessEngine:
     def minimax(self, board: ChessBoard, depth: int, alpha: float, beta: float, maximizing_player: str, original_board: ChessBoard) -> float:
         """Perform the Minimax algorithm with alpha-beta pruning and return the 
         evaluation score of the best move for the current player."""
-        if depth == 0 or board.has_legal_moves(board.turn, True) is False:
+        if (depth == 0 or board.has_legal_moves(board.turn, True) is False):
             evaluation = self.evaluate_board(board)
 
             # Restore the board state
@@ -275,11 +275,15 @@ class ChessEngine:
 
             return evaluation
 
+        # Game is solved
+        # if (board.has_legal_moves(board.turn, True) is False):
+        #     # Restore the board state
+        #     self.restoreBoardState(board, original_board)
+
+        #     inf_value = -inf if board.turn == 'white' else inf
+        #     return inf_value
+
         if maximizing_player == 'white':
-            # print("^^^^^^^^^^^^^^^^^^^^^^^^")
-            # print("WHITE")
-            # print(board.display())
-            # print("^^^^^^^^^^^^^^^^^^^^^^^^")
             max_eval = -inf
             legal_moves = board.generate_legal_moves('white', True)
             for move in legal_moves:
@@ -309,10 +313,6 @@ class ChessEngine:
                     break  # Beta cutoff
             return max_eval
         else:
-            # print("^^^^^^^^^^^^^^^^^^^^^^^^")
-            # print("BLACK")
-            # print(board.display())
-            # print("^^^^^^^^^^^^^^^^^^^^^^^^")
             min_eval = inf
             legal_moves = board.generate_legal_moves('black', True)
             for move in legal_moves:
@@ -358,12 +358,9 @@ class ChessEngine:
         best_move = None
         best_value = -inf if board.turn == 'white' else inf
 
-        # print("-Start-")
         legal_moves = board.generate_legal_moves(board.turn, True)
-        print(legal_moves)
         for move in legal_moves:
             move: Dict[str, Tuple[int, int]]
-            # print("Move: ", move)
 
             # Save the board state before making the move
             original_board = board.clone()
@@ -399,6 +396,10 @@ class ChessEngine:
 
             start_square = to_square_notation(best_move['start'])
             end_square = to_square_notation(best_move['end'])
+            return f"{start_square} {end_square}"
+        elif legal_moves:
+            start_square = to_square_notation(move['start'])
+            end_square = to_square_notation(move['end'])
             return f"{start_square} {end_square}"
 
         # No valid moves available

@@ -441,11 +441,6 @@ class ChessBoard:
                     if self.move_piece_helper(start, end, self.board, color, flag):
                         if not flag:
                             self.has_moved = True
-                            if (color == "white"):
-                                self.white_king_position = (end_x, end_y)
-                            else:
-                                self.black_king_position = (end_x, end_y)
-
                             # Update fullmove number
                             if (color == 'black'):
                                 self.updateFullMoveNumber()
@@ -493,7 +488,7 @@ class ChessBoard:
                             if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
                                 if engineflag:
                                     self.board[end_x][end_y] = Queen(color)
-                                    self.pieces[color][position] = self.board[end_x][end_y]
+                                    self.pieces[color][end] = self.board[end_x][end_y]
                                 else:
                                     piece.promote_pawn((end_x, end_y), color, self)
 
@@ -629,8 +624,10 @@ class ChessBoard:
                         piece: ChessPiece = self.board[new_x][new_y]
                         self.board[new_x][new_y] = self.board[king_x][king_y]
                         self.board[king_x][king_y] = None
+
+                        # Temporarily update the king position
                         king_position: Tuple[int, int] = new_x, new_y
-                        if (color == "white"):
+                        if (color == 'white'):
                             self.white_king_position = king_position
                         else:
                             self.black_king_position = king_position
@@ -641,8 +638,9 @@ class ChessBoard:
                             self.board[king_x][king_y] = self.board[new_x][new_y]
                             self.board[new_x][new_y] = piece
 
+                            # Change the king position back to the original value
                             king_position = king_x, king_y
-                            if (color == "white"):
+                            if (color == 'white'):
                                 self.white_king_position = king_position
                             else:
                                 self.black_king_position = king_position
@@ -654,8 +652,10 @@ class ChessBoard:
                         # Undo the move
                         self.board[king_x][king_y] = self.board[new_x][new_y]
                         self.board[new_x][new_y] = piece
+
+                        # Change the king position back to the original value
                         king_position = king_x, king_y
-                        if (color == "white"):
+                        if (color == 'white'):
                             self.white_king_position = king_position
                         else:
                             self.black_king_position = king_position
@@ -666,6 +666,14 @@ class ChessBoard:
                 piece: ChessPiece
 
                 if piece.is_valid_move(pos, checking_position, self.board):
+                    # Temporarily update the king position
+                    if isinstance(piece, King):
+                        king_positionPrev: Tuple[int, int] = self.white_king_position if color == 'white' else self.black_king_position
+                        if (color == 'white'):
+                            self.white_king_position = checking_position
+                        else:
+                            self.black_king_position = checking_position
+
                     # Temporarily make the capture
                     captured_piece: ChessPiece = self.board[checking_position[0]][checking_position[1]]
                     self.board[checking_position[0]][checking_position[1]] = piece
@@ -678,6 +686,13 @@ class ChessBoard:
                         self.board[checking_position[0]][checking_position[1]] = captured_piece
                         self.pieces[opponent_color][checking_position] = captured_piece
 
+                        # Change the king position back to the original value
+                        if isinstance(piece, King):
+                            if (color == 'white'):
+                                self.white_king_position = king_positionPrev
+                            else:
+                                self.black_king_position = king_positionPrev
+
                         if not minmaxFlag:
                             print(f"{color.capitalize()} is in check.")
                         return True
@@ -686,6 +701,13 @@ class ChessBoard:
                     self.board[pos[0]][pos[1]] = piece
                     self.board[checking_position[0]][checking_position[1]] = captured_piece
                     self.pieces[opponent_color][checking_position] = captured_piece
+
+                    # Change the king position back to the original value
+                    if isinstance(piece, King):
+                        if (color == 'white'):
+                            self.white_king_position = king_positionPrev
+                        else:
+                            self.black_king_position = king_positionPrev
 
             # Check if we can block the check by moving a piece between the king and the checking piece
             if isinstance(checking_piece, (Rook, Bishop, Queen)):
@@ -729,6 +751,14 @@ class ChessBoard:
             for dx in range(8):
                 for dy in range(8):
                     if piece.is_valid_move(pos, (dx, dy), self.board):
+                        # Temporarily update the king position
+                        if isinstance(piece, King):
+                            king_positionPrev: Tuple[int, int] = self.white_king_position if color == 'white' else self.black_king_position
+                            if (color == 'white'):
+                                self.white_king_position = (dx, dy)
+                            else:
+                                self.black_king_position = (dx, dy)
+
                         # Temporarily make the move
                         target_piece: ChessPiece = self.board[dx][dy]
                         self.board[dx][dy] = piece
@@ -743,6 +773,13 @@ class ChessBoard:
                             self.board[dx][dy] = target_piece
                             if target_piece and target_piece.color == opponent_color and not isinstance(target_piece, King):
                                 self.pieces[opponent_color][(dx, dy)] = target_piece
+                            
+                            # Change the king position back to the original value
+                            if isinstance(piece, King):
+                                if (color == 'white'):
+                                    self.white_king_position = king_positionPrev
+                                else:
+                                    self.black_king_position = king_positionPrev
                             return True
 
                         # Undo the move
@@ -750,6 +787,13 @@ class ChessBoard:
                         self.board[dx][dy] = target_piece
                         if (target_piece and target_piece.color == opponent_color and not isinstance(target_piece, King)):
                             self.pieces[opponent_color][(dx, dy)] = target_piece
+
+                        # Change the king position back to the original value
+                        if isinstance(piece, King):
+                            if (color == 'white'):
+                                self.white_king_position = king_positionPrev
+                            else:
+                                self.black_king_position = king_positionPrev
 
         # No legal moves were found and the king is not in check, so it's stalemate
         if not minmaxFlag:
@@ -765,29 +809,19 @@ class ChessBoard:
         active_pieces: Dict[Tuple[int, int], ChessPiece] = deepcopy(self.pieces['white'] if color == 'white' else self.pieces['black'])
 
         # Iterate over each piece type and their positions
-        # print("--------------------------------")
         for pos, piece in active_pieces.items():
             pos: Tuple[int, int]
             piece: ChessPiece
-
-            # if flag and pos == (6, 2):
-            #     print("oooooooooooooooooo")
-            #     print(active_pieces.items())
 
             if not piece:
                 continue
 
             # Check all the possible moves for the each piece type
-            # print("Piece: ", piece, " Pos: ", pos, " Legal moves: ", piece.legal_moves(pos, color))
             for move in piece.legal_moves(pos, color):
                 move: Tuple[int, int]
 
                 # Make the move temporarily to check for legality
-                # print("Trying to move piece from: ", pos, " to ", move)
                 if self.move_piece(pos, move, color, True):
-                    # print({'start': pos, 'end': move})
-                    # if (pos == (4, 7) and move == (3, 6)):
-                    #     print("Board: ", self.board[4][7], " Dict: ", active_pieces[(4, 7)])
                     legal_moves.append({'start': pos, 'end': move})
         return legal_moves
 
