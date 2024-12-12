@@ -96,15 +96,15 @@ class ChessEngine:
         }
 
         # Piece-tables. They ensure a quick evaluation of a piece's position
-        self.position_values = {
+        self.positional_values = {
             'pawn': [
                 [0, 0, 0, 0, 0, 0, 0, 0],
-                [4, 4, 4, 4, 4, 4, 4, 4],
-                [1, 1, 2, 3, 3, 2, 1, 1],
-                [0.5, 0.5, 1, 2.5, 2.5, 1, 0.5, 0.5],
-                [0, 0, 0, 2, 2, 0, 0, 0],
-                [0.5, -0.5, -1, -0.5, -0.5, -1, -0.5, 0.5],
-                [0.5, 1, 1, -2, -2, 1, 1, 0.5],
+                [3, 3, 3, 3, 3, 3, 3, 3],
+                [1, 1, 2, 2.5, 2.5, 2, 1, 1],
+                [0.5, 0.5, 1, 2, 2, 1, 0.5, 0.5],
+                [0, 0, 0, 1.5, 1.5, 0, 0, 0],
+                [0.8, 0.7, 0.5, -0.5, -0.5, -1, 0.7, 0.8],
+                [0.7, 1, 1, -2, -2, 1, 1, 0.7],
                 [0, 0, 0, 0, 0, 0, 0, 0]
             ],
             'knight': [
@@ -129,13 +129,13 @@ class ChessEngine:
             ],
             'rook': [
                 [0, 0, 0, 0, 0, 0, 0, 0],
-                [0.5, 1, 1, 1, 1, 1, 1, 0.5],
+                [0.7, 1, 1, 1, 1, 1, 1, 0.7],
                 [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
                 [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
                 [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
                 [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
                 [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
-                [0, 0, 0, 0.5, 0.5, 0, 0, 0]
+                [0, 0, 0, 0.5, 0.5, 0.2, 0, 0]
             ],
             'queen': [
                 [-2, -1, -0.5, -0.5, -0.5, -0.5, -1, -2],
@@ -155,7 +155,7 @@ class ChessEngine:
                 [-2, -3, -3, -4, -4, -3, -3, -2],
                 [-1, -2, -2, -2, -2, -2, -2, -1],
                 [1.5, 1.5, -0.3, -0.3, -0.3, -0.3, 1.5, 1.5],
-                [2, 3, 1.5, -0.3, 0, 1, 3, 2]
+                [2, 3, 3, -0.3, 0, 0.8, 3, 2]
             ]
         }
 
@@ -205,14 +205,21 @@ class ChessEngine:
     def evaluate_position(self, piece_type: str, position: Tuple[int, int], color: str) -> float:
         """Evaluate the positional value with bonuses/penalties based on piece-tables."""
         x, y = position
-        if color == 'black':
-            # Flip the board for black pieces
-            x, y = 7 - x, 7 - y
 
         # Get the positional value from the piece's table
-        position_value = self.position_values[piece_type][y][x]
+        positional_value = self.positional_values[piece_type][y][x]
 
-        return position_value
+        # Variables to determine the importance of which piece the engine should move each time
+        if (piece_type == "Pawn"):
+            positional_value *= 0.8
+        elif (piece_type == "Knight"):
+            positional_value *= 0.7
+        elif (piece_type == "Bishop"):
+            positional_value *= 1.2
+        elif (piece_type == "Queen"):
+            positional_value *= 1.4
+
+        return positional_value
 
     def evaluate_pawn_structure(self, position: Tuple[int, int], color: str, board: ChessBoard) -> float:
         """Evaluate the pawn structure for penalties like doubled, isolated."""
@@ -236,7 +243,7 @@ class ChessEngine:
                 if (pos[1] - 1, pos[0]) in board.pieces[color] or (pos[1] + 1, pos[0]) in board.pieces[color]:
                     isolated = False
         if isolated:
-            penalty -= 0.5  # Isolated pawns have no support
+            penalty -= 0.5  # Isolated pawns have no support and must be punished
 
         return penalty
 
