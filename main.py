@@ -3,7 +3,10 @@
 from board import ChessBoard
 from utils import parse_position
 from evaluate import ChessEngine
+from pieces.rook import Rook
+from pieces.king import King
 import time
+
 
 def main():
     board = ChessBoard()
@@ -85,6 +88,28 @@ def main():
                     board.updateEnPassantSquare(turn, last_move)
                     board.updateFENstack()
                     update_threefold_repetition = True
+
+                    # Update the has_move atributes for the engine's color in case the engine played a move
+                    # Player's has_move atributes are been updated inside the move_piece_helper() function
+                    if (engineflag):
+                        x, y = end
+                        if isinstance(board.board[x][y], King):
+                            board.board[x][y].has_moved = True
+                            # Castling move
+                            if abs(start[0] - end[0]) == 2:
+                                if end[0] == 6:  # Kingside
+                                    if not (turn == 'white'):  # It's "not" because the turn has been updated already
+                                        rook: Rook = board.pieces[color][(5, 0)]  # It's (5, 0) because the castling move has already been played
+                                    else:
+                                        rook: Rook = board.pieces[color][(5, 7)]
+                                elif end[0] == 2:  # Queenside
+                                    if not (turn == 'white'):
+                                        rook: Rook = board.pieces[color][(3, 0)]
+                                    else:
+                                        rook: Rook = board.pieces[color][(3, 7)]
+                                rook.has_moved = True
+                        elif isinstance(board.board[x][y], Rook):
+                            board.board[x][y].has_moved = True
                 else:
                     print("""
 Invalid move, try again.""")

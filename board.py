@@ -437,10 +437,11 @@ class ChessBoard:
         # Check if the piece at the start square is of the correct color
         if (piece and piece.color == color):
             if isinstance(piece, King):
+                if (not flag and not engineflag):
+                    print("King has moved: ", piece.has_moved, " Rook has moved: ", self.board[7][0].has_moved)
                 if piece.is_valid_move(start, end, self.board, self):
-                    if self.move_piece_helper(start, end, self.board, color, flag):
+                    if self.move_piece_helper(start, end, self.board, color, flag, engineflag):
                         if not flag:
-                            self.has_moved = True
                             # Update fullmove number
                             if (color == 'black'):
                                 self.updateFullMoveNumber()
@@ -451,7 +452,7 @@ class ChessBoard:
             # Check for en passant capture
             en_passant_target_pawn: ChessPiece = self.board[end_x][start_y]  # Pawn that can be captured en passant (if any)
             if (self.en_passant_square and isinstance(piece, Pawn) and self.en_passant_square == to_square_notation(end) and piece.is_valid_move(start, end, self.board, self)):
-                if self.move_piece_helper(start, end, self.board, color, flag):
+                if self.move_piece_helper(start, end, self.board, color, flag, engineflag):
                     if flag:
                         # Restore the enemy pawn that was captured en passant
                         self.board[end_x][start_y] = en_passant_target_pawn
@@ -474,7 +475,7 @@ class ChessBoard:
                 self.board[end_x][start_y] = en_passant_target_pawn
                 return False
             if piece.is_valid_move(start, end, self.board):
-                if self.move_piece_helper(start, end, self.board, color, flag):
+                if self.move_piece_helper(start, end, self.board, color, flag, engineflag):
                     if not flag:
                         self.updateHalfMoveClock()  # Increment halfmove clock
 
@@ -502,13 +503,18 @@ class ChessBoard:
                     return True
         return False
 
-    def move_piece_helper(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]], color: str, flag: bool) -> bool:
+    def move_piece_helper(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]], color: str, flag: bool, engineflag: bool) -> bool:
         """Check if a move is legal before playing it and update the board accordingly."""
         opponent_color = 'black' if color == 'white' else 'white'
         start_x, start_y = start
         end_x, end_y = end
         piece: ChessPiece = self.board[start_x][start_y]  # Piece at the start square
         target_piece: ChessPiece = self.board[end_x][end_y]  # Piece at the target square(if any)
+
+        if (not flag and not engineflag):
+            print("Start: ", start, " End: ", end)
+        if (not flag and not engineflag and start == (4, 0) and end == (6, 0)):
+            print("King has moved: ", piece.has_moved, " Rook has moved: ", board[7][0].has_moved)
 
         # Save the state of the board for check validation
         if isinstance(piece, King):
@@ -565,21 +571,41 @@ class ChessBoard:
                 else:
                     self.black_king_position = king_positionPrev
         else:
-            # Castling move
-            if (isinstance(piece, King) and abs(start[0] - end[0]) == 2):
-                row = start[1]
-                if end[0] == 6:  # Kingside
-                    self.board[5][row] = self.board[7][row]
-                    self.board[7][row] = None
-                    rook: Rook = self.pieces[color][(7, 0)]
-                    del self.pieces[color][(7, 0)]
-                    self.pieces[color][(5, 0)] = rook
-                elif end[0] == 2:  # Queenside
-                    self.board[3][row] = self.board[0][row]
-                    self.board[0][row] = None
-                    rook: Rook = self.pieces[color][(0, 0)]
-                    del self.pieces[color][(0, 0)]
-                    self.pieces[color][(3, 0)] = rook
+            # Update the has_move atributes for the player's color in case the player played a move
+            # Engine's has_move atributes are been updated inside the game loop in the main() function
+            if (isinstance(piece, King)):
+                if not engineflag:
+                    piece.has_moved = True
+                # Castling move
+                if abs(start[0] - end[0]) == 2:
+                    row = start[1]
+                    if end[0] == 6:  # Kingside
+                        self.board[5][row] = self.board[7][row]
+                        self.board[7][row] = None
+                        if (color == 'white'):
+                            rook: Rook = self.pieces[color][(7, 0)]
+                            del self.pieces[color][(7, 0)]
+                            self.pieces[color][(5, 0)] = rook
+                        else:
+                            rook: Rook = self.pieces[color][(7, 7)]
+                            del self.pieces[color][(7, 7)]
+                            self.pieces[color][(5, 7)] = rook
+                    elif end[0] == 2:  # Queenside
+                        self.board[3][row] = self.board[0][row]
+                        self.board[0][row] = None
+                        if (color == 'white'):
+                            rook: Rook = self.pieces[color][(0, 0)]
+                            del self.pieces[color][(0, 0)]
+                            self.pieces[color][(3, 0)] = rook
+                        else:
+                            rook: Rook = self.pieces[color][(0, 7)]
+                            del self.pieces[color][(0, 7)]
+                            self.pieces[color][(3, 7)] = rook
+                    if not engineflag:
+                        rook.has_moved = True
+            if (isinstance(piece, Rook) and not engineflag):
+                piece.has_moved = True
+
             # Reset halfmove clock because a piece is captured
             if (target_piece and target_piece.color != color):
                 self.halfmove_clock = 0

@@ -19,7 +19,6 @@ class Rook(ChessPiece):
         end_x, end_y = end
         if start_x == end_x or start_y == end_y:
             if self.is_path_clear(start, end, board):
-                self.has_moved = True
                 return True
         return False
 
