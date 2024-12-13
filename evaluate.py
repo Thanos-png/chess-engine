@@ -372,7 +372,6 @@ class ChessEngine:
         best_value = -inf if board.turn == 'white' else inf
 
         legal_moves = board.generate_legal_moves(board.turn, True)
-        print(legal_moves)
         for move in legal_moves:
             move: Dict[str, Tuple[int, int]]
 
