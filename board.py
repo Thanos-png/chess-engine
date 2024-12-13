@@ -25,6 +25,7 @@ class ChessBoard:
         self.fullmove_number = 1  #How many turns have been played
         self.board_history = {}  # Dictionary to store FEN and their counts for threefold repetition draw
         self.fen_stack = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]  # Stack to store FEN strings for undoing moves
+        self.stalemate = False  # Flag that checks if the current position is a stalemate
 
     def clone(self) -> 'ChessBoard':
         """Create a deep copy of the chess board."""
@@ -437,8 +438,6 @@ class ChessBoard:
         # Check if the piece at the start square is of the correct color
         if (piece and piece.color == color):
             if isinstance(piece, King):
-                if (not flag and not engineflag):
-                    print("King has moved: ", piece.has_moved, " Rook has moved: ", self.board[7][0].has_moved)
                 if piece.is_valid_move(start, end, self.board, self):
                     if self.move_piece_helper(start, end, self.board, color, flag, engineflag):
                         if not flag:
@@ -510,11 +509,6 @@ class ChessBoard:
         end_x, end_y = end
         piece: ChessPiece = self.board[start_x][start_y]  # Piece at the start square
         target_piece: ChessPiece = self.board[end_x][end_y]  # Piece at the target square(if any)
-
-        if (not flag and not engineflag):
-            print("Start: ", start, " End: ", end)
-        if (not flag and not engineflag and start == (4, 0) and end == (6, 0)):
-            print("King has moved: ", piece.has_moved, " Rook has moved: ", board[7][0].has_moved)
 
         # Save the state of the board for check validation
         if isinstance(piece, King):
@@ -612,7 +606,7 @@ class ChessBoard:
             self.update_piece_position(start, end)
         return True
 
-    def has_legal_moves(self, color: str, minmaxFlag=False) -> bool:
+    def has_legal_moves(self, color: str, minimaxFlag=False) -> bool:
         """Determine if the player has any legal moves remaining.
         If the king is in check, check if there is a way to escape check (either by moving the king,
         blocking the check, or capturing the checking piece). If no escape is possible, declare checkmate.
@@ -671,7 +665,7 @@ class ChessBoard:
                             else:
                                 self.black_king_position = king_position
 
-                            if not minmaxFlag:
+                            if not minimaxFlag:
                                 print(f"{color.capitalize()} is in check.")
                             return True
 
@@ -719,7 +713,7 @@ class ChessBoard:
                             else:
                                 self.black_king_position = king_positionPrev
 
-                        if not minmaxFlag:
+                        if not minimaxFlag:
                             print(f"{color.capitalize()} is in check.")
                         return True
 
@@ -756,7 +750,7 @@ class ChessBoard:
                                 self.board[pos[0]][pos[1]] = piece
                                 self.board[square[0]][square[1]] = original_piece
 
-                                if not minmaxFlag:
+                                if not minimaxFlag:
                                     print(f"{color.capitalize()} is in check.")
                                 return True
 
@@ -765,7 +759,7 @@ class ChessBoard:
                             self.board[square[0]][square[1]] = original_piece
 
             # No legal moves were found and the king is in check, so it's checkmate
-            if not minmaxFlag:
+            if not minimaxFlag:
                 print(f"Checkmate! {('Black' if color == 'white' else 'White')} wins!")
             return False
 
@@ -822,8 +816,10 @@ class ChessBoard:
                                 self.black_king_position = king_positionPrev
 
         # No legal moves were found and the king is not in check, so it's stalemate
-        if not minmaxFlag:
+        if not minimaxFlag:
             print("Stalemate! The game is a draw.")
+        if minimaxFlag:
+            self.stalemate = True
         return False
 
     def generate_legal_moves(self, color: str, flag=False) -> list[Dict[str, Tuple[int, int]]]:

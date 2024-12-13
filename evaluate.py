@@ -274,21 +274,27 @@ class ChessEngine:
     def minimax(self, board: ChessBoard, depth: int, alpha: float, beta: float, maximizing_player: str, original_board: ChessBoard) -> float:
         """Perform the Minimax algorithm with alpha-beta pruning and return the 
         evaluation score of the best move for the current player."""
-        if (depth == 0 or board.has_legal_moves(board.turn, True) is False):
+        # Game is solved
+        if (board.has_legal_moves(board.turn, True) is False and board.stalemate == False):
+            # Restore the board state
+            self.restoreBoardState(board, original_board)
+
+            mate_value = 1000000000 if board.turn == 'white' else -1000000000
+            return mate_value
+        elif (board.has_legal_moves(board.turn, True) is False and board.stalemate == True):
+            # Restore the board state
+            self.restoreBoardState(board, original_board)
+
+            return 0  # The game is a draw
+
+        # Final tree node
+        if (depth == 0):
             evaluation = self.evaluate_board(board)
 
             # Restore the board state
             self.restoreBoardState(board, original_board)
 
             return evaluation
-
-        # Game is solved
-        # if (board.has_legal_moves(board.turn, True) is False):
-        #     # Restore the board state
-        #     self.restoreBoardState(board, original_board)
-
-        #     inf_value = -inf if board.turn == 'white' else inf
-        #     return inf_value
 
         if maximizing_player == 'white':
             max_eval = -inf
@@ -366,6 +372,7 @@ class ChessEngine:
         best_value = -inf if board.turn == 'white' else inf
 
         legal_moves = board.generate_legal_moves(board.turn, True)
+        print(legal_moves)
         for move in legal_moves:
             move: Dict[str, Tuple[int, int]]
 
@@ -382,6 +389,7 @@ class ChessEngine:
             last_move = (move['start'], move['end'], piece)
             board.updateEnPassantSquare(board.turn, last_move)
             board.updateFENstack()
+            board.stalemate = False
             evaluation: float = self.minimax(board, depth - 1, -inf, inf, board.turn, original_board)
 
             # Restore the board state
