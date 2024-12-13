@@ -67,7 +67,7 @@ def main():
         else:
             move = input("Enter your move: ").strip().lower()
 
-        if move == 'resign':
+        if move == 'resign' or move == 'r':
             print(f"{turn.capitalize()} resigns. {('Black' if turn == 'white' else 'White')} wins!")
             break
 
