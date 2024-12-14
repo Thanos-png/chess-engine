@@ -4,7 +4,7 @@ from pieces.piece import ChessPiece
 from pieces.pawn import Pawn
 from pieces.king import King
 from math import inf
-from utils import parse_position, to_square_notation
+from utils import to_square_notation
 from board import ChessBoard
 from polyglot import Polyglot
 
@@ -16,38 +16,7 @@ class PolyglotEngine:
         self.book_path = book_path
         self.polyglot = Polyglot(book_path)
 
-    def changePiecesFormat(self, pieces: Dict[str, Dict[Tuple[int, int], ChessPiece]]) -> Dict[Tuple[int, int], Tuple[str, str]]:
-        """Change the board.pieces format to map positions to (piece_type, color) and 
-        create a new pawns dictionairy that maps squares to color."""
-        result = {}
-        pawns = {}
-
-        for color, piece_positions in pieces.items():
-            color: str
-            piece_positions: Dict[Tuple[int, int], ChessPiece]
-
-            for position, piece in piece_positions.items():
-                position: Tuple[int, int]
-                piece: ChessPiece
-
-                if isinstance(piece, Pawn):
-                    pawns[position] = color
-
-                piece_type: str = type(piece).__name__.lower()
-                result[position] = (piece_type, color)
-
-        return result, pawns
-
-    def changeCastlingRightsFormat(self, castling_rights: Dict[str, bool]) -> str:
-        """Change the board.castling_rights format to a string representation."""
-        result = ''.join(flag for flag, available in castling_rights.items() if available)
-        return result if result else '-'  # If there are no castling rights then return '-'
-
-    def changeEnPassantSquareFormat(self, en_passant_square: str) -> Tuple[int, int]:
-        """Change the board.en_passant_square format to a string representation."""
-        return parse_position(en_passant_square) if en_passant_square else None
-
-    def find_move_from_book(self, board) -> str:
+    def find_move_from_book(self, board: ChessBoard) -> str:
         """Query the Polyglot book for the best move in the current position. 
         Returns the best move in (e.g., 'e2 e4') format, or None if no move found."""
         try:
@@ -55,9 +24,11 @@ class PolyglotEngine:
             best_weight: float = -10
 
             # Change the format and unpack the variables
-            pieces, pawns = self.changePiecesFormat(board.pieces)
-            castling_rights = self.changeCastlingRightsFormat(board.castling_rights)
-            ep_square = self.changeEnPassantSquareFormat(board.en_passant_square)
+            pieces, pawns = board.changePiecesFormat(board.pieces)
+            pieces: Dict[Tuple[int, int], Tuple[str, str]]
+            pawns: Dict[Tuple[int, int], str]
+            castling_rights: str = board.changeCastlingRightsFormat(board.castling_rights)
+            ep_square: Tuple[int, int] = board.changeEnPassantSquareFormat(board.en_passant_square)
 
             for weight, uci_move in self.polyglot.reader(board, pieces, castling_rights, ep_square, board.turn, pawns):
                 weight: float
@@ -135,7 +106,7 @@ class ChessEngine:
                 [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
                 [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
                 [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
-                [0, 0, 0, 0.5, 0.5, 0.2, 0, 0]
+                [0, 0, 0.2, 0.5, 0.5, 0.2, 0, 0]
             ],
             'queen': [
                 [-2, -1, -0.5, -0.5, -0.5, -0.5, -1, -2],
@@ -232,7 +203,7 @@ class ChessEngine:
             board.pieces[color]: Dict[Tuple[int, int], ChessPiece]
 
             if (x, y + i) in board.pieces[color] and isinstance(board.pieces[color][(x, y + i)], Pawn):
-                penalty -= 1  # Doubled pawns are a weakness
+                penalty -= 0.5  # Doubled pawns are a weakness
 
         # Check for isolated pawns
         for pos, piece_type in board.pieces[color].items():
@@ -243,7 +214,7 @@ class ChessEngine:
                 if (pos[1] - 1, pos[0]) in board.pieces[color] or (pos[1] + 1, pos[0]) in board.pieces[color]:
                     isolated = False
         if isolated:
-            penalty -= 0.5  # Isolated pawns have no support and must be punished
+            penalty -= 0.3  # Isolated pawns have no support and must be punished
 
         return penalty
 
@@ -251,11 +222,15 @@ class ChessEngine:
         """Evaluate the king's safety by making sure that he is covered."""
         x , y = position
         penalty = 0
+
+        # Calculate king safety from the king's table
+        positional_value = self.positional_values['king'][y][x] * 0.6
+
         king: King = board.board[x][y]
         if king.is_in_check(color, board):
-            penalty -= 0.5
+            penalty -= 0.4
 
-        return penalty
+        return penalty + positional_value
 
     def restoreBoardState(self, board: ChessBoard, original_board: ChessBoard) -> None:
         """Restores every value of the chess board."""
@@ -268,8 +243,9 @@ class ChessEngine:
         board.en_passant_square: str = original_board.en_passant_square
         board.halfmove_clock: int = original_board.halfmove_clock
         board.fullmove_number: int = original_board.fullmove_number
-        board.board_history: Dict[str, int] = original_board.board_history
+        board.repetition_count: Dict[int, int] = original_board.repetition_count
         board.fen_stack: list[str] = original_board.fen_stack
+        board.stalemate: bool = original_board.stalemate
 
     def minimax(self, board: ChessBoard, depth: int, alpha: float, beta: float, maximizing_player: str, original_board: ChessBoard) -> float:
         """Perform the Minimax algorithm with alpha-beta pruning and return the 
@@ -285,7 +261,17 @@ class ChessEngine:
             # Restore the board state
             self.restoreBoardState(board, original_board)
 
-            return 0  # The game is a draw
+            return 0  # The game is a draw by stalemate
+        if board.checkFiftyMoveRule(True):
+            # Restore the board state
+            self.restoreBoardState(board, original_board)
+
+            return 0  # The game is a draw by fifty-move rule
+        if board.checkThreefoldRepetition(True):
+            # Restore the board state
+            self.restoreBoardState(board, original_board)
+
+            return 0  # The game is a draw by threefold repetition
 
         # Final tree node
         if (depth == 0):
@@ -410,10 +396,6 @@ class ChessEngine:
 
             start_square = to_square_notation(best_move['start'])
             end_square = to_square_notation(best_move['end'])
-            return f"{start_square} {end_square}"
-        elif legal_moves:
-            start_square = to_square_notation(move['start'])
-            end_square = to_square_notation(move['end'])
             return f"{start_square} {end_square}"
 
         # No valid moves available

@@ -96,7 +96,7 @@ class King(ChessPiece):
             (x, y + 1), (x, y - 1),
             (x + 1, y + 1), (x + 1, y - 1),
             (x - 1, y + 1), (x - 1, y - 1),
-            (2, 0), (6, 0)  # Castling moves
+            (2, 0), (6, 0), (2, 7), (6, 7)  # Castling moves
         ]
     
         # Filter moves within the board

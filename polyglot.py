@@ -274,18 +274,19 @@ class ZobristHasher:
 class Polyglot:
     """Class to handle reading Polyglot opening books."""
 
-    def __init__(self, book_path: str) -> None:
-        """Initialize the Polyglot reader."""
+    def __init__(self, book_path: Optional[str] = None) -> None:
+        """Initialize the Polyglot reader. Sometimes we don't pass a book_path
+        because we only care about the zobristHash() method."""
         self.book_path = book_path
 
-    def _zobrist_hash(self, board, pieces: Dict[Tuple[int, int], Tuple[str, str]], castling_rights: str, ep_square: Optional[Tuple[int, int]], turn: str, pawns: Dict[Tuple[int, int], str]) -> int:
+    def zobristHash(self, board, pieces: Dict[Tuple[int, int], Tuple[str, str]], castling_rights: str, ep_square: Optional[Tuple[int, int]], turn: str, pawns: Dict[Tuple[int, int], str]) -> int:
         """Compute the Polyglot Zobrist hash for a given board state using the ZobristHasher.
         pieces: A dictionary mapping squares to (piece_type, color).
         Example: {(0, 0): ('rook', 'white'), (0, 1): ('pawn', 'black')}
         pawns: A dictionary mapping squares to color
         Example: {(0, 1): 'white', (0, 6): 'black'}"""
         zobrist_hasher = ZobristHasher(POLYGLOT_RANDOM_ARRAY)
-        hash_value = zobrist_hasher(pieces, castling_rights, ep_square, turn, pawns)
+        hash_value: int = zobrist_hasher(pieces, castling_rights, ep_square, turn, pawns)
 
         return hash_value
 
@@ -293,7 +294,7 @@ class Polyglot:
         """Query the Polyglot book for the current board state.
         Yields a Tuple[int, str]: (Weight in int, Move in UCI "e2e4" format)."""
         try:
-            zobrist_hash = self._zobrist_hash(board, pieces, castling_rights, ep_square, turn, pawns)
+            zobrist_hash: int = self.zobristHash(board, pieces, castling_rights, ep_square, turn, pawns)
             with open(self.book_path, "rb") as book:
                 # Read entries in the book
                 while True:

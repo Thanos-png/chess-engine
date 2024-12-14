@@ -28,14 +28,16 @@ To start a game run the following command on your CLI:
 ```python3 main.py```
 
 ## How to Play
-Once the game starts, follow the prompts and choose a color to play as.  
-You can type ```w``` as well as ```white``` and ```b``` as well as ```black```  
-If you want the engine to play with itself you can press ```Enter```  
-After you chose your color you can input your moves.  
+Once the game starts, follow the prompts and choose a depth at which you would like the engine to play.  
+You can choose any values from ```1``` to ```5``` or just press ```enter``` and it will be adjusted automatically.  
+To choose the color you want to play as you can type ```w``` as well as ```white``` and ```b``` as well as ```black```  
+Or if you want the engine to play with itself you can press ```Enter```  
+After you chose the depth and your color you can input your moves.  
 (e.g., ```e2 e4``` for moving a pawn from ```e2``` to ```e4```).
 
 ### Example Gameplay
 ```
+Choose the depth of the engine: 3
 Choose your color (white/black): w
 
   a b c d e f g h

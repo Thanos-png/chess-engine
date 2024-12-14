@@ -14,16 +14,18 @@ def main():
     last_move = None  # To track last move for en passant
     update_threefold_repetition = True
     intErrorFlag = False
+    dynamicDepth = False
     depth = None
     color = None
 
     # Player chooses depth
-    while depth not in ["1", "2", "3", "4", ""]:
+    while depth not in ["1", "2", "3", "4", "5", ""]:
         if intErrorFlag:
             print(f"{depth} is not a valid number.")
         depth = input("Choose the depth of the engine: ").strip()
         intErrorFlag = True
     if (depth == ""):
+        dynamicDepth = True
         depth = "3"
 
     # Player chooses color
@@ -59,9 +61,9 @@ def main():
         print(f"{turn.capitalize()}'s move")
 
         # Get move
-        engineflag = False
+        engineFlag = False
         if turn != color:
-            engineflag = True
+            engineFlag = True
 
             # Start the timer
             start_time = time.time()
@@ -75,6 +77,10 @@ def main():
 
             # Print the time taken
             print(f"Engine took {elapsed_time:.2f} seconds to decide on the move.")
+
+            # If the dynamic depth is enabled check if the depth of the search can be increased
+            if (dynamicDepth and board.fullmove_number >= 16 and elapsed_time < 0.25):
+                depth = int(depth) + 1
         else:
             move = input("Enter your move: ").strip().lower()
 
@@ -93,7 +99,7 @@ def main():
             piece = board.board[start[0]][start[1]]
 
             if piece and piece.color == turn:
-                if board.move_piece(start, end, turn, False, engineflag):
+                if board.move_piece(start, end, turn, False, engineFlag):
                     turn = board.updateTurn()
                     last_move = (start, end, piece)
                     board.updateEnPassantSquare(turn, last_move)
@@ -102,19 +108,20 @@ def main():
 
                     # Update the has_move atributes for the engine's color in case the engine played a move
                     # Player's has_move atributes are been updated inside the move_piece_helper() function
-                    if (engineflag):
+                    if (engineFlag):
                         x, y = end
                         if isinstance(board.board[x][y], King):
                             board.board[x][y].has_moved = True
                             # Castling move
                             if abs(start[0] - end[0]) == 2:
                                 if end[0] == 6:  # Kingside
-                                    if not (turn == 'white'):  # It's "not" because the turn has been updated already
+                                    if (turn == 'white'):
                                         rook: Rook = board.pieces[color][(5, 0)]  # It's (5, 0) because the castling move has already been played
                                     else:
+                                        print(board.pieces[color])
                                         rook: Rook = board.pieces[color][(5, 7)]
                                 elif end[0] == 2:  # Queenside
-                                    if not (turn == 'white'):
+                                    if (turn == 'white'):
                                         rook: Rook = board.pieces[color][(3, 0)]
                                     else:
                                         rook: Rook = board.pieces[color][(3, 7)]

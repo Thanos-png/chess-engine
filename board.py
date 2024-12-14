@@ -7,7 +7,8 @@ from pieces.knight import Knight
 from pieces.bishop import Bishop
 from pieces.queen import Queen
 from pieces.king import King
-from utils import to_square_notation
+from utils import parse_position, to_square_notation
+from polyglot import Polyglot
 from copy import deepcopy
 
 
@@ -23,7 +24,8 @@ class ChessBoard:
         self.en_passant_square = None  # Square where an en passant capture is possible
         self.halfmove_clock = 0  # Number of halfmoves since the last capture or pawn advance
         self.fullmove_number = 1  #How many turns have been played
-        self.board_history = {}  # Dictionary to store FEN and their counts for threefold repetition draw
+        self.repetition_count = {}  # Hash map to track board state frequencies
+        self.polyglotObj = Polyglot()  # Polyglot object to call zobristHash() to check for threefold repetition draw
         self.fen_stack = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]  # Stack to store FEN strings for undoing moves
         self.stalemate = False  # Flag that checks if the current position is a stalemate
 
@@ -39,8 +41,9 @@ class ChessBoard:
         new_board.en_passant_square = self.en_passant_square
         new_board.halfmove_clock = self.halfmove_clock
         new_board.fullmove_number = self.fullmove_number
-        new_board.board_history = self.board_history.copy()
+        new_board.repetition_count = self.repetition_count.copy()
         new_board.fen_stack = self.fen_stack[:]
+        new_board.stalemate = self.stalemate
         return new_board
 
     # Getter for pieces
@@ -116,9 +119,9 @@ class ChessBoard:
             elif end == (7, 0):
                 self.castling_rights['K'] = False
 
-        # Clear board history if castling rights change
+        # Clear repetition count history if castling rights change
         if (prev_castling_rights != self.castling_rights):
-            self.board_history.clear()
+            self.repetition_count.clear()
 
     def updateEnPassantSquare(self, color: str, last_move: Tuple[Tuple[int, int], Tuple[int, int], ChessPiece]) -> None:
         """Update en_passant_square based on the last move."""
@@ -161,6 +164,37 @@ class ChessBoard:
         current_fen: str = self.to_fen()
         self.fen_stack.append(current_fen)
 
+    def changePiecesFormat(self, pieces: Dict[str, Dict[Tuple[int, int], ChessPiece]]) -> Dict[Tuple[int, int], Tuple[str, str]]:
+        """Change the self.pieces format to map positions to (piece_type, color) and 
+        create a new pawns dictionairy that maps squares to color."""
+        result = {}
+        pawns = {}
+
+        for color, piece_positions in pieces.items():
+            color: str
+            piece_positions: Dict[Tuple[int, int], ChessPiece]
+
+            for position, piece in piece_positions.items():
+                position: Tuple[int, int]
+                piece: ChessPiece
+
+                if isinstance(piece, Pawn):
+                    pawns[position] = color
+
+                piece_type: str = type(piece).__name__.lower()
+                result[position] = (piece_type, color)
+
+        return result, pawns
+
+    def changeCastlingRightsFormat(self, castling_rights: Dict[str, bool]) -> str:
+        """Change the self.castling_rights format to a string representation."""
+        result = ''.join(flag for flag, available in castling_rights.items() if available)
+        return result if result else '-'  # If there are no castling rights then return '-'
+
+    def changeEnPassantSquareFormat(self, en_passant_square: str) -> Tuple[int, int]:
+        """Change the self.en_passant_square format to a string representation."""
+        return parse_position(en_passant_square) if en_passant_square else None
+
     def setup_board(self) -> None:
         """Sets up the chess board with pieces in their initial positions."""
         for i in range(8):
@@ -187,19 +221,34 @@ class ChessBoard:
             print(f"{y+1}")
         print("  a b c d e f g h\n")
 
-    def checkThreefoldRepetition(self) -> bool:
+    def checkThreefoldRepetition(self, engineFlag=False) -> bool:
         """Check if the current board state has occurred three times."""
-        current_state: str = self.to_fen().rsplit(' ', 2)[0]  # Update the current state of the board without halfmove_clock and fullmove_number
-        self.board_history[current_state] = self.board_history.get(current_state, 0) + 1  # Update board history
-        if (self.board_history.get(current_state, 0) >= 3):
-            print("Draw by threefold repetition.")
+        # Change the format and unpack the variables
+        pieces, pawns = self.changePiecesFormat(self.pieces)
+        pieces: Dict[Tuple[int, int], Tuple[str, str]]
+        pawns: Dict[Tuple[int, int], str]
+        castling_rights: str = self.changeCastlingRightsFormat(self.castling_rights)
+        ep_square: Tuple[int, int] = self.changeEnPassantSquareFormat(self.en_passant_square)
+        current_state: int = self.polyglotObj.zobristHash(self.board, pieces, castling_rights, ep_square, self.turn, pawns)  # Unique int value representing the board state
+
+        # Update the Hash map
+        if current_state in self.repetition_count:
+            self.repetition_count[current_state] += 1
+        else:
+            self.repetition_count[current_state] = 1
+
+        # Check if this is the third time this position occurres
+        if self.repetition_count.get(current_state, 0) >= 3:
+            if not engineFlag:
+                print("Draw by threefold repetition.")
             return True
         return False
 
-    def checkFiftyMoveRule(self) -> bool:
+    def checkFiftyMoveRule(self, engineFlag=False) -> bool:
         """Check if the game has reached a draw by the fifty-move rule."""
         if (self.halfmove_clock >= 50):
-            print("Draw by fifty-move rule.")
+            if not engineFlag:
+                print("Draw by fifty-move rule.")
             return True
         return False
 
@@ -415,10 +464,10 @@ class ChessBoard:
                 return True
         return False
 
-    def move_piece(self, start: Tuple[int, int], end: Tuple[int, int], color: str, flag=False, engineflag=False) -> bool:
+    def move_piece(self, start: Tuple[int, int], end: Tuple[int, int], color: str, flag=False, engineFlag=False) -> bool:
         """Moves a piece from the start position to the end position if it is a valid move.
         flag: is used to check if the move is valid before playing it (for the generate_legal_moves()).
-        engineflag: is used to check if the move is made by the engine (in case pawn promotion needed)."""
+        engineFlag: is used to check if the move is made by the engine (in case pawn promotion needed)."""
         if (start == end):
             return False
 
@@ -439,7 +488,7 @@ class ChessBoard:
         if (piece and piece.color == color):
             if isinstance(piece, King):
                 if piece.is_valid_move(start, end, self.board, self):
-                    if self.move_piece_helper(start, end, self.board, color, flag, engineflag):
+                    if self.move_piece_helper(start, end, self.board, color, flag, engineFlag):
                         if not flag:
                             # Update fullmove number
                             if (color == 'black'):
@@ -451,7 +500,7 @@ class ChessBoard:
             # Check for en passant capture
             en_passant_target_pawn: ChessPiece = self.board[end_x][start_y]  # Pawn that can be captured en passant (if any)
             if (self.en_passant_square and isinstance(piece, Pawn) and self.en_passant_square == to_square_notation(end) and piece.is_valid_move(start, end, self.board, self)):
-                if self.move_piece_helper(start, end, self.board, color, flag, engineflag):
+                if self.move_piece_helper(start, end, self.board, color, flag, engineFlag):
                     if flag:
                         # Restore the enemy pawn that was captured en passant
                         self.board[end_x][start_y] = en_passant_target_pawn
@@ -467,26 +516,26 @@ class ChessBoard:
                         # Reset halfmove clock because a pawn was moved
                         self.halfmove_clock = 0
 
-                        # Clear board history after an en passant capture
-                        self.board_history.clear()
+                        # Clear repetition count history after an en passant capture
+                        self.repetition_count.clear()
                     return True
                 # Restore the enemy pawn that was captured en passant
                 self.board[end_x][start_y] = en_passant_target_pawn
                 return False
             if piece.is_valid_move(start, end, self.board):
-                if self.move_piece_helper(start, end, self.board, color, flag, engineflag):
+                if self.move_piece_helper(start, end, self.board, color, flag, engineFlag):
                     if not flag:
                         self.updateHalfMoveClock()  # Increment halfmove clock
 
                         # Check for pawn promotion
                         if isinstance(piece, Pawn):
-                            # Clear board history after a pawn move
-                            self.board_history.clear()
+                            # Clear repetition count history after a pawn move
+                            self.repetition_count.clear()
 
                             # Reset halfmove clock because a pawn was moved
                             self.halfmove_clock = 0
                             if (color == 'white' and end_y == 7) or (color == 'black' and end_y == 0):
-                                if engineflag:
+                                if engineFlag:
                                     self.board[end_x][end_y] = Queen(color)
                                     self.pieces[color][end] = self.board[end_x][end_y]
                                 else:
@@ -502,7 +551,7 @@ class ChessBoard:
                     return True
         return False
 
-    def move_piece_helper(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]], color: str, flag: bool, engineflag: bool) -> bool:
+    def move_piece_helper(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]], color: str, flag: bool, engineFlag: bool) -> bool:
         """Check if a move is legal before playing it and update the board accordingly."""
         opponent_color = 'black' if color == 'white' else 'white'
         start_x, start_y = start
@@ -568,7 +617,7 @@ class ChessBoard:
             # Update the has_move atributes for the player's color in case the player played a move
             # Engine's has_move atributes are been updated inside the game loop in the main() function
             if (isinstance(piece, King)):
-                if not engineflag:
+                if not engineFlag:
                     piece.has_moved = True
                 # Castling move
                 if abs(start[0] - end[0]) == 2:
@@ -595,9 +644,9 @@ class ChessBoard:
                             rook: Rook = self.pieces[color][(0, 7)]
                             del self.pieces[color][(0, 7)]
                             self.pieces[color][(3, 7)] = rook
-                    if not engineflag:
+                    if not engineFlag:
                         rook.has_moved = True
-            if (isinstance(piece, Rook) and not engineflag):
+            if (isinstance(piece, Rook) and not engineFlag):
                 piece.has_moved = True
 
             # Reset halfmove clock because a piece is captured
@@ -606,7 +655,7 @@ class ChessBoard:
             self.update_piece_position(start, end)
         return True
 
-    def has_legal_moves(self, color: str, minimaxFlag=False) -> bool:
+    def has_legal_moves(self, color: str, engineFlag=False) -> bool:
         """Determine if the player has any legal moves remaining.
         If the king is in check, check if there is a way to escape check (either by moving the king,
         blocking the check, or capturing the checking piece). If no escape is possible, declare checkmate.
@@ -665,7 +714,7 @@ class ChessBoard:
                             else:
                                 self.black_king_position = king_position
 
-                            if not minimaxFlag:
+                            if not engineFlag:
                                 print(f"{color.capitalize()} is in check.")
                             return True
 
@@ -713,7 +762,7 @@ class ChessBoard:
                             else:
                                 self.black_king_position = king_positionPrev
 
-                        if not minimaxFlag:
+                        if not engineFlag:
                             print(f"{color.capitalize()} is in check.")
                         return True
 
@@ -750,7 +799,7 @@ class ChessBoard:
                                 self.board[pos[0]][pos[1]] = piece
                                 self.board[square[0]][square[1]] = original_piece
 
-                                if not minimaxFlag:
+                                if not engineFlag:
                                     print(f"{color.capitalize()} is in check.")
                                 return True
 
@@ -759,7 +808,7 @@ class ChessBoard:
                             self.board[square[0]][square[1]] = original_piece
 
             # No legal moves were found and the king is in check, so it's checkmate
-            if not minimaxFlag:
+            if not engineFlag:
                 print(f"Checkmate! {('Black' if color == 'white' else 'White')} wins!")
             return False
 
@@ -816,9 +865,9 @@ class ChessBoard:
                                 self.black_king_position = king_positionPrev
 
         # No legal moves were found and the king is not in check, so it's stalemate
-        if not minimaxFlag:
+        if not engineFlag:
             print("Stalemate! The game is a draw.")
-        if minimaxFlag:
+        if engineFlag:
             self.stalemate = True
         return False
 
