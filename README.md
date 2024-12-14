@@ -7,6 +7,7 @@ A robust chess engine implementation built using Minimax and Alpha-Beta Pruning 
     * Castling (Kingside and Queenside).
     * En Passant.
     * Pawn promotion.
+* Implements a FEN string input option so that you can input your games.
 * Utilizes a Polyglot opening book for quick and accurate early-game decisions.
 * Includes a command-line interface(CLI) for playing against the engine.
 
@@ -27,10 +28,10 @@ To start a game run the following command on your CLI:
 ```python3 main.py```
 
 ## How to Play
-Once the game starts, follow the prompts and choose a color to play as.
-You can type ```w``` as well as ```white``` and ```b``` as well as ```black```
-If you want the engine to play with itself you can press ```Enter```
-After you chose your color you can input your moves.
+Once the game starts, follow the prompts and choose a color to play as.  
+You can type ```w``` as well as ```white``` and ```b``` as well as ```black```  
+If you want the engine to play with itself you can press ```Enter```  
+After you chose your color you can input your moves.  
 (e.g., ```e2 e4``` for moving a pawn from ```e2``` to ```e4```).
 
 ### Example Gameplay

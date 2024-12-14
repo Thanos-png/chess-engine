@@ -13,7 +13,18 @@ def main():
     engine = ChessEngine()
     last_move = None  # To track last move for en passant
     update_threefold_repetition = True
+    intErrorFlag = False
+    depth = None
     color = None
+
+    # Player chooses depth
+    while depth not in ["1", "2", "3", "4", ""]:
+        if intErrorFlag:
+            print(f"{depth} is not a valid number.")
+        depth = input("Choose the depth of the engine: ").strip()
+        intErrorFlag = True
+    if (depth == ""):
+        depth = "3"
 
     # Player chooses color
     while color not in ['white', 'black', 'w', 'b', '']:
@@ -56,7 +67,7 @@ def main():
             start_time = time.time()
 
             print("Engine is thinking...\n")
-            move = engine.find_best_move(board, depth=3)
+            move = engine.find_best_move(board, depth=int(depth))
 
             # End the timer
             end_time = time.time()
