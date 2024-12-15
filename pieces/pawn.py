@@ -15,7 +15,7 @@ class Pawn(ChessPiece):
         return 'Pawn'
 
     def __str__(self) -> str:
-        return '♙' if self.color == 'white' else '♟'
+        return '♟' if self.color == 'white' else '♙'
 
     def is_valid_move(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]], chessboard_instance: Optional['ChessBoard'] = None) -> bool:
         """A pawn can move forward one square, or two squares from its starting position. It captures diagonally."""

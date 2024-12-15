@@ -16,7 +16,7 @@ class King(ChessPiece):
         return 'King'
 
     def __str__(self) -> str:
-        return '♔' if self.color == 'white' else '♚'
+        return '♚' if self.color == 'white' else '♔'
 
     def is_valid_move(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]], board_instance=None) -> bool:
         """A king can move one square in any direction. It can also castle if certain conditions are met."""

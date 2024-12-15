@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from board import ChessBoard
-from utils import parse_position
+from utils import parse_position, to_square_notation
 from evaluate import ChessEngine
 from pieces.rook import Rook
 from pieces.king import King
@@ -39,9 +39,11 @@ def main():
     while True:
         turn = board.turn
         board.display()
+        if update_threefold_repetition and last_move:
+            print(f"Last move: {to_square_notation(last_move[0])} {to_square_notation(last_move[1])}")
 
         # Check for threefold repetition
-        if update_threefold_repetition and board.checkThreefoldRepetition():
+        if (update_threefold_repetition and board.checkThreefoldRepetition()):
             break
         update_threefold_repetition = False
 
@@ -58,11 +60,11 @@ def main():
             break
 
         # Update turn
-        print(f"{turn.capitalize()}'s move")
+        print(f"It's {turn.capitalize()}'s move\n")
 
         # Get move
         engineFlag = False
-        if turn != color:
+        if (turn != color):
             engineFlag = True
 
             # Start the timer
@@ -84,11 +86,11 @@ def main():
         else:
             move = input("Enter your move: ").strip().lower()
 
-        if move == 'resign' or move == 'r':
+        if (move == 'resign' or move == 'r'):
             print(f"{turn.capitalize()} resigns. {('Black' if turn == 'white' else 'White')} wins!")
             break
 
-        if move == 'fen':
+        if (move == 'fen'):
             board.from_fen(input("Enter FEN: "))
             continue
 
@@ -98,7 +100,7 @@ def main():
             end = parse_position(end_str)
             piece = board.board[start[0]][start[1]]
 
-            if piece and piece.color == turn:
+            if (piece and piece.color == turn):
                 if board.move_piece(start, end, turn, False, engineFlag):
                     turn = board.updateTurn()
                     last_move = (start, end, piece)
@@ -113,14 +115,14 @@ def main():
                         if isinstance(board.board[x][y], King):
                             board.board[x][y].has_moved = True
                             # Castling move
-                            if abs(start[0] - end[0]) == 2:
-                                if end[0] == 6:  # Kingside
+                            if (abs(start[0] - end[0]) == 2):
+                                if (end[0] == 6):  # Kingside
                                     if (turn == 'white'):
                                         rook: Rook = board.pieces[color][(5, 0)]  # It's (5, 0) because the castling move has already been played
                                     else:
                                         print(board.pieces[color])
                                         rook: Rook = board.pieces[color][(5, 7)]
-                                elif end[0] == 2:  # Queenside
+                                elif (end[0] == 2):  # Queenside
                                     if (turn == 'white'):
                                         rook: Rook = board.pieces[color][(3, 0)]
                                     else:

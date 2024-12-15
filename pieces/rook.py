@@ -11,7 +11,7 @@ class Rook(ChessPiece):
         return 'Rook'
 
     def __str__(self) -> str:
-        return '♖' if self.color == 'white' else '♜'
+        return '♜' if self.color == 'white' else '♖'
 
     def is_valid_move(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]]) -> bool:
         """A rook can move horizontally or vertically as long as the path is clear."""

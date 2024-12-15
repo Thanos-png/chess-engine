@@ -10,7 +10,7 @@ class Bishop(ChessPiece):
         return 'Bishop'
 
     def __str__(self) -> str:
-        return '♗' if self.color == 'white' else '♝'
+        return '♝' if self.color == 'white' else '♗'
 
     def is_valid_move(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]]) -> bool:
         """A bishop can move diagonally as long as the path is clear."""

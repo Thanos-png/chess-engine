@@ -10,7 +10,7 @@ class Knight(ChessPiece):
         return 'Knight'
 
     def __str__(self) -> str:
-        return '♘' if self.color == 'white' else '♞'
+        return '♞' if self.color == 'white' else '♘'
 
     def is_valid_move(self, start: Tuple[int, int], end: Tuple[int, int], board: list[list[Optional[ChessPiece]]]) -> bool:
         """A knight can move 2 squares in one direction and 1 square in a perpendicular direction."""
