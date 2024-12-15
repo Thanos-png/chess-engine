@@ -41,19 +41,22 @@ Choose the depth of the engine: 3
 Choose your color (white/black): w
 
   a b c d e f g h
-8 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 8
-7 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 7
+8 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 8
+7 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 7
 6 . . . . . . . . 6
 5 . . . . . . . . 5
 4 . . . . . . . . 4
 3 . . . . . . . . 3
-2 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 2
-1 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 1
+2 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 2
+1 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 1
   a b c d e f g h
 
-White's move
+It's White's move
+
 Enter your move: e2 e4
 ```
+
+**Note:** you can type ```fen``` as a move if you want to input a specific position using a fen string.
 
 ## Contributing
 Contributions are welcome! Please feel free to fork the repository and submit a pull request.
