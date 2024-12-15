@@ -7,6 +7,8 @@ A robust chess engine implementation built using Minimax and Alpha-Beta Pruning 
     * Castling (Kingside and Queenside).
     * En Passant.
     * Pawn promotion.
+    * Threefold repetition
+    * Fifty-move rule
 * Implements a FEN string input option so that you can input your games.
 * Utilizes a Polyglot opening book for quick and accurate early-game decisions.
 * Includes a command-line interface(CLI) for playing against the engine.
@@ -56,7 +58,7 @@ It's White's move
 Enter your move: e2 e4
 ```
 
-**Note:** you can type ```fen``` as a move if you want to input a specific position using a fen string.
+**Note:** You can type ```fen``` as a move if you want to input a specific position using a fen string. Or you can type either ```r``` or ```resign``` if you wish to surrender.
 
 ## Contributing
 Contributions are welcome! Please feel free to fork the repository and submit a pull request.
