@@ -38,25 +38,8 @@ After you chose the depth and your color you can input your moves.
 (e.g., ```e2 e4``` for moving a pawn from ```e2``` to ```e4```).
 
 ### Example Gameplay
-```
-Choose the depth of the engine: 3
-Choose your color (white/black): w
 
-  a b c d e f g h
-8 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 8
-7 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 7
-6 . . . . . . . . 6
-5 . . . . . . . . 5
-4 . . . . . . . . 4
-3 . . . . . . . . 3
-2 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 2
-1 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 1
-  a b c d e f g h
-
-It's White's move
-
-Enter your move: e2 e4
-```
+[FirstMove](markdown/console.png)
 
 **Note:** You can type ```fen``` as a move if you want to input a specific position using a fen string. Or you can type either ```r``` or ```resign``` if you wish to surrender.
 
