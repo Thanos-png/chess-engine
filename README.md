@@ -39,7 +39,7 @@ After you chose the depth and your color you can input your moves.
 
 ### Example Gameplay
 
-[FirstMove](markdown/console.png)
+![FirstMove](markdown/console.png)
 
 **Note:** You can type ```fen``` as a move if you want to input a specific position using a fen string. Or you can type either ```r``` or ```resign``` if you wish to surrender.
 
