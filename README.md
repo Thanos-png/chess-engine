@@ -1,4 +1,4 @@
-# chess-engine
+# Chess Engine
 A robust chess engine implementation built using Minimax and Alpha-Beta Pruning algorithms. This engine evaluates positions heuristically and supports standard chess gameplay features.
 
 ## Features
